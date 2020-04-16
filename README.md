@@ -15,7 +15,7 @@ Below is a brief summary of the tools (present in Linux) that we will use to bui
 - [Cgroups](#cgroups)
 
 ## Namespaces
-Namespaces are a feature of the Linux kernel that partitions kernel resources such tat one set of processes sees one set of resources while another set of processes sees a different set of resources.
+Namespaces are a feature of the Linux kernel that partitions kernel resources such that one set of processes sees one set of resources while another set of processes sees a different set of resources.
 So, thanks by feature, we can limit what the "process can see". We will set up namespaces using Linux kernel syscalls.
 
 ## Chroot
