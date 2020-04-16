@@ -17,8 +17,8 @@ void runc(int n_values, char *command_input[]) {
     fprintf(stdout, "]\n");
 
     /* child stack allocation */
-    void *child_stack_bottom  = malloc(STACK_SIZE);
-    if (!child_stack_bottom)
+    void *child_stack_bottom  = (void*) malloc(STACK_SIZE);
+    if (child_stack_bottom == NULL)
         printErr("child stack allocation");
 
     /* stack will grow from top to bottom */
@@ -34,6 +34,10 @@ void runc(int n_values, char *command_input[]) {
     int status;
     if (wait(&status) == -1)
         printErr("wait");
+
+    free(child_stack_bottom);
+
+    fprintf(stdout, "Child process terminated.\n");
 
 }
 
