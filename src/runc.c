@@ -13,8 +13,12 @@
 
 
 int child_fn(void *buf) {
-    /* here we can customize the container process
-       actually just running the command */
+    /* here we can customize the container process */
+    
+    /* setting new hostname */
+    char *hostname = strdup("container");
+    sethostname(hostname, sizeof(hostname)+1);
+    
     system((char *)buf);
     return 0;
 }
