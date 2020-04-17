@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
     if (argc < N_PARAMS)
         printUsage();
 
-    switch(dispatcher(argv[1])) {
+    switch(parser(argv[1])) {
         case RUN:
             runc(argc, argv);
             break;

@@ -13,7 +13,7 @@ void printUsage() {
     exit(EXIT_FAILURE);
 }
 
-int dispatcher(char *command) {
+int parser(char *command) {
     if (strcmp(command, RUN_COMMAND) == 0)
     {
         return RUN;

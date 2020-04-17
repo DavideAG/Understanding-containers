@@ -17,4 +17,4 @@
 void printUsage();
 
 /* dispatch che input command */
-int dispatcher(char *command);
+int parser(char *command);
