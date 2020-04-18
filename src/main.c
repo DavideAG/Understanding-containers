@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
             break;
 
         default:
-            perror("bad command");
+            printErr("bad comand");
     }
 
     exit(EXIT_SUCCESS);
