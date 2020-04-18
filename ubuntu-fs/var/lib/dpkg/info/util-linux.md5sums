@@ -19,7 +19,7 @@ c41a679581552d86b9f6740ffde0ad02  sbin/blkid
 fe9254f0953d5b557c10c3c7d2984d04  sbin/fsck.minix
 ecb1cecdcf282183e07a71a5b3bbbe37  sbin/fsfreeze
 9c4a51f18596a5d6c89818823a7c22a3  sbin/fstrim
-9e5e589c4c945e72cea399bc134136e6  sbin/hwclock
+20562b202c57b5e0fc9000c09b4da9c6  sbin/hwclock
 02d67f523ba1f78ca6d3ad362ff7d897  sbin/isosize
 19dd48810ad06de5e537b984924b2d80  sbin/mkfs
 049839fc9426e0e0097b653975a8b3d5  sbin/mkfs.bfs

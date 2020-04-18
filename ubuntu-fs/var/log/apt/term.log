@@ -1,3 +1,226 @@
 
 Log started: 2020-03-11  21:05:48
 Log ended: 2020-03-11  21:05:48
+
+Log started: 2020-04-18  20:16:20
+Selecting previously unselected package libmagic-mgc.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 4046 files and directories currently installed.)
+Preparing to unpack .../00-libmagic-mgc_1%3a5.32-2ubuntu0.3_amd64.deb ...
+Unpacking libmagic-mgc (1:5.32-2ubuntu0.3) ...
+Selecting previously unselected package libmagic1:amd64.
+Preparing to unpack .../01-libmagic1_1%3a5.32-2ubuntu0.3_amd64.deb ...
+Unpacking libmagic1:amd64 (1:5.32-2ubuntu0.3) ...
+Selecting previously unselected package file.
+Preparing to unpack .../02-file_1%3a5.32-2ubuntu0.3_amd64.deb ...
+Unpacking file (1:5.32-2ubuntu0.3) ...
+Selecting previously unselected package libexpat1:amd64.
+Preparing to unpack .../03-libexpat1_2.2.5-3ubuntu0.2_amd64.deb ...
+Unpacking libexpat1:amd64 (2.2.5-3ubuntu0.2) ...
+Selecting previously unselected package libmpdec2:amd64.
+Preparing to unpack .../04-libmpdec2_2.4.2-1ubuntu1_amd64.deb ...
+Unpacking libmpdec2:amd64 (2.4.2-1ubuntu1) ...
+Selecting previously unselected package libssl1.1:amd64.
+Preparing to unpack .../05-libssl1.1_1.1.1-1ubuntu2.1~18.04.5_amd64.deb ...
+Unpacking libssl1.1:amd64 (1.1.1-1ubuntu2.1~18.04.5) ...
+Selecting previously unselected package libpython3.6-minimal:amd64.
+Preparing to unpack .../06-libpython3.6-minimal_3.6.9-1~18.04_amd64.deb ...
+Unpacking libpython3.6-minimal:amd64 (3.6.9-1~18.04) ...
+Selecting previously unselected package mime-support.
+Preparing to unpack .../07-mime-support_3.60ubuntu1_all.deb ...
+Unpacking mime-support (3.60ubuntu1) ...
+Selecting previously unselected package readline-common.
+Preparing to unpack .../08-readline-common_7.0-3_all.deb ...
+Unpacking readline-common (7.0-3) ...
+Selecting previously unselected package libreadline7:amd64.
+Preparing to unpack .../09-libreadline7_7.0-3_amd64.deb ...
+Unpacking libreadline7:amd64 (7.0-3) ...
+Selecting previously unselected package libsqlite3-0:amd64.
+Preparing to unpack .../10-libsqlite3-0_3.22.0-1ubuntu0.3_amd64.deb ...
+Unpacking libsqlite3-0:amd64 (3.22.0-1ubuntu0.3) ...
+Selecting previously unselected package libpython3.6-stdlib:amd64.
+Preparing to unpack .../11-libpython3.6-stdlib_3.6.9-1~18.04_amd64.deb ...
+Unpacking libpython3.6-stdlib:amd64 (3.6.9-1~18.04) ...
+Selecting previously unselected package xxd.
+Preparing to unpack .../12-xxd_2%3a8.0.1453-1ubuntu1.3_amd64.deb ...
+Unpacking xxd (2:8.0.1453-1ubuntu1.3) ...
+Selecting previously unselected package vim-common.
+Preparing to unpack .../13-vim-common_2%3a8.0.1453-1ubuntu1.3_all.deb ...
+Unpacking vim-common (2:8.0.1453-1ubuntu1.3) ...
+Selecting previously unselected package xz-utils.
+Preparing to unpack .../14-xz-utils_5.2.2-1.3_amd64.deb ...
+Unpacking xz-utils (5.2.2-1.3) ...
+Selecting previously unselected package libgpm2:amd64.
+Preparing to unpack .../15-libgpm2_1.20.7-5_amd64.deb ...
+Unpacking libgpm2:amd64 (1.20.7-5) ...
+Selecting previously unselected package libpython3.6:amd64.
+Preparing to unpack .../16-libpython3.6_3.6.9-1~18.04_amd64.deb ...
+Unpacking libpython3.6:amd64 (3.6.9-1~18.04) ...
+Selecting previously unselected package vim-runtime.
+Preparing to unpack .../17-vim-runtime_2%3a8.0.1453-1ubuntu1.3_all.deb ...
+Adding 'diversion of /usr/share/vim/vim80/doc/help.txt to /usr/share/vim/vim80/doc/help.txt.vim-tiny by vim-runtime'
+Adding 'diversion of /usr/share/vim/vim80/doc/tags to /usr/share/vim/vim80/doc/tags.vim-tiny by vim-runtime'
+Unpacking vim-runtime (2:8.0.1453-1ubuntu1.3) ...
+Selecting previously unselected package vim.
+Preparing to unpack .../18-vim_2%3a8.0.1453-1ubuntu1.3_amd64.deb ...
+Unpacking vim (2:8.0.1453-1ubuntu1.3) ...
+Setting up readline-common (7.0-3) ...
+Setting up libexpat1:amd64 (2.2.5-3ubuntu0.2) ...
+Setting up mime-support (3.60ubuntu1) ...
+Setting up xxd (2:8.0.1453-1ubuntu1.3) ...
+Setting up libgpm2:amd64 (1.20.7-5) ...
+Setting up libreadline7:amd64 (7.0-3) ...
+Setting up libmagic-mgc (1:5.32-2ubuntu0.3) ...
+Setting up libmagic1:amd64 (1:5.32-2ubuntu0.3) ...
+Setting up libssl1.1:amd64 (1.1.1-1ubuntu2.1~18.04.5) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (No usable dialog-like program is installed, so the dialog based frontend cannot be used. at /usr/share/perl5/Debconf/FrontEnd/Dialog.pm line 76.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.26.1 /usr/local/share/perl/5.26.1 /usr/lib/x86_64-linux-gnu/perl5/5.26 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl/5.26 /usr/share/perl/5.26 /usr/local/lib/site_perl /usr/lib/x86_64-linux-gnu/perl-base) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+debconf: falling back to frontend: Teletype
+Setting up xz-utils (5.2.2-1.3) ...
+update-alternatives: using /usr/bin/xz to provide /usr/bin/lzma (lzma) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/man1/lzma.1.gz because associated file /usr/share/man/man1/xz.1.gz (of link group lzma) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/unlzma.1.gz because associated file /usr/share/man/man1/unxz.1.gz (of link group lzma) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/lzcat.1.gz because associated file /usr/share/man/man1/xzcat.1.gz (of link group lzma) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/lzmore.1.gz because associated file /usr/share/man/man1/xzmore.1.gz (of link group lzma) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/lzless.1.gz because associated file /usr/share/man/man1/xzless.1.gz (of link group lzma) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/lzdiff.1.gz because associated file /usr/share/man/man1/xzdiff.1.gz (of link group lzma) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/lzcmp.1.gz because associated file /usr/share/man/man1/xzcmp.1.gz (of link group lzma) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/lzgrep.1.gz because associated file /usr/share/man/man1/xzgrep.1.gz (of link group lzma) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/lzegrep.1.gz because associated file /usr/share/man/man1/xzegrep.1.gz (of link group lzma) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/lzfgrep.1.gz because associated file /usr/share/man/man1/xzfgrep.1.gz (of link group lzma) doesn't exist
+Setting up vim-common (2:8.0.1453-1ubuntu1.3) ...
+Setting up libsqlite3-0:amd64 (3.22.0-1ubuntu0.3) ...
+Setting up vim-runtime (2:8.0.1453-1ubuntu1.3) ...
+Setting up libmpdec2:amd64 (2.4.2-1ubuntu1) ...
+Setting up file (1:5.32-2ubuntu0.3) ...
+Setting up libpython3.6-minimal:amd64 (3.6.9-1~18.04) ...
+Setting up libpython3.6-stdlib:amd64 (3.6.9-1~18.04) ...
+Setting up libpython3.6:amd64 (3.6.9-1~18.04) ...
+Setting up vim (2:8.0.1453-1ubuntu1.3) ...
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/vim (vim) in auto mode
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/vimdiff (vimdiff) in auto mode
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/rvim (rvim) in auto mode
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/rview (rview) in auto mode
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/vi (vi) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/fr/man1/vi.1.gz because associated file /usr/share/man/fr/man1/vim.1.gz (of link group vi) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/it/man1/vi.1.gz because associated file /usr/share/man/it/man1/vim.1.gz (of link group vi) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/pl/man1/vi.1.gz because associated file /usr/share/man/pl/man1/vim.1.gz (of link group vi) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ru/man1/vi.1.gz because associated file /usr/share/man/ru/man1/vim.1.gz (of link group vi) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ja/man1/vi.1.gz because associated file /usr/share/man/ja/man1/vim.1.gz (of link group vi) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/vi.1.gz because associated file /usr/share/man/man1/vim.1.gz (of link group vi) doesn't exist
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/view (view) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/fr/man1/view.1.gz because associated file /usr/share/man/fr/man1/vim.1.gz (of link group view) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/it/man1/view.1.gz because associated file /usr/share/man/it/man1/vim.1.gz (of link group view) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/pl/man1/view.1.gz because associated file /usr/share/man/pl/man1/vim.1.gz (of link group view) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ru/man1/view.1.gz because associated file /usr/share/man/ru/man1/vim.1.gz (of link group view) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ja/man1/view.1.gz because associated file /usr/share/man/ja/man1/vim.1.gz (of link group view) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/view.1.gz because associated file /usr/share/man/man1/vim.1.gz (of link group view) doesn't exist
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/ex (ex) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/fr/man1/ex.1.gz because associated file /usr/share/man/fr/man1/vim.1.gz (of link group ex) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/it/man1/ex.1.gz because associated file /usr/share/man/it/man1/vim.1.gz (of link group ex) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/pl/man1/ex.1.gz because associated file /usr/share/man/pl/man1/vim.1.gz (of link group ex) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ru/man1/ex.1.gz because associated file /usr/share/man/ru/man1/vim.1.gz (of link group ex) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ja/man1/ex.1.gz because associated file /usr/share/man/ja/man1/vim.1.gz (of link group ex) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/ex.1.gz because associated file /usr/share/man/man1/vim.1.gz (of link group ex) doesn't exist
+update-alternatives: using /usr/bin/vim.basic to provide /usr/bin/editor (editor) in auto mode
+update-alternatives: warning: skip creation of /usr/share/man/fr/man1/editor.1.gz because associated file /usr/share/man/fr/man1/vim.1.gz (of link group editor) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/it/man1/editor.1.gz because associated file /usr/share/man/it/man1/vim.1.gz (of link group editor) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/pl/man1/editor.1.gz because associated file /usr/share/man/pl/man1/vim.1.gz (of link group editor) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ru/man1/editor.1.gz because associated file /usr/share/man/ru/man1/vim.1.gz (of link group editor) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/ja/man1/editor.1.gz because associated file /usr/share/man/ja/man1/vim.1.gz (of link group editor) doesn't exist
+update-alternatives: warning: skip creation of /usr/share/man/man1/editor.1.gz because associated file /usr/share/man/man1/vim.1.gz (of link group editor) doesn't exist
+Processing triggers for libc-bin (2.27-3ubuntu1) ...
+Log ended: 2020-04-18  20:16:28
+
+Log started: 2020-04-18  20:16:34
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6628 files and directories currently installed.)
+Preparing to unpack .../bsdutils_1%3a2.31.1-0.4ubuntu3.6_amd64.deb ...
+Unpacking bsdutils (1:2.31.1-0.4ubuntu3.6) over (1:2.31.1-0.4ubuntu3.5) ...
+Setting up bsdutils (1:2.31.1-0.4ubuntu3.6) ...
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6628 files and directories currently installed.)
+Preparing to unpack .../libuuid1_2.31.1-0.4ubuntu3.6_amd64.deb ...
+Unpacking libuuid1:amd64 (2.31.1-0.4ubuntu3.6) over (2.31.1-0.4ubuntu3.5) ...
+Setting up libuuid1:amd64 (2.31.1-0.4ubuntu3.6) ...
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6628 files and directories currently installed.)
+Preparing to unpack .../libblkid1_2.31.1-0.4ubuntu3.6_amd64.deb ...
+Unpacking libblkid1:amd64 (2.31.1-0.4ubuntu3.6) over (2.31.1-0.4ubuntu3.5) ...
+Setting up libblkid1:amd64 (2.31.1-0.4ubuntu3.6) ...
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6628 files and directories currently installed.)
+Preparing to unpack .../libfdisk1_2.31.1-0.4ubuntu3.6_amd64.deb ...
+Unpacking libfdisk1:amd64 (2.31.1-0.4ubuntu3.6) over (2.31.1-0.4ubuntu3.5) ...
+Setting up libfdisk1:amd64 (2.31.1-0.4ubuntu3.6) ...
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6628 files and directories currently installed.)
+Preparing to unpack .../libmount1_2.31.1-0.4ubuntu3.6_amd64.deb ...
+Unpacking libmount1:amd64 (2.31.1-0.4ubuntu3.6) over (2.31.1-0.4ubuntu3.5) ...
+Setting up libmount1:amd64 (2.31.1-0.4ubuntu3.6) ...
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6628 files and directories currently installed.)
+Preparing to unpack .../libsmartcols1_2.31.1-0.4ubuntu3.6_amd64.deb ...
+Unpacking libsmartcols1:amd64 (2.31.1-0.4ubuntu3.6) over (2.31.1-0.4ubuntu3.5) ...
+Setting up libsmartcols1:amd64 (2.31.1-0.4ubuntu3.6) ...
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6628 files and directories currently installed.)
+Preparing to unpack .../fdisk_2.31.1-0.4ubuntu3.6_amd64.deb ...
+Unpacking fdisk (2.31.1-0.4ubuntu3.6) over (2.31.1-0.4ubuntu3.5) ...
+Setting up fdisk (2.31.1-0.4ubuntu3.6) ...
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6628 files and directories currently installed.)
+Preparing to unpack .../util-linux_2.31.1-0.4ubuntu3.6_amd64.deb ...
+Unpacking util-linux (2.31.1-0.4ubuntu3.6) over (2.31.1-0.4ubuntu3.5) ...
+Setting up util-linux (2.31.1-0.4ubuntu3.6) ...
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6628 files and directories currently installed.)
+Preparing to unpack .../mount_2.31.1-0.4ubuntu3.6_amd64.deb ...
+Unpacking mount (2.31.1-0.4ubuntu3.6) over (2.31.1-0.4ubuntu3.5) ...
+Preparing to unpack .../gcc-8-base_8.4.0-1ubuntu1~18.04_amd64.deb ...
+Unpacking gcc-8-base:amd64 (8.4.0-1ubuntu1~18.04) over (8.3.0-26ubuntu1~18.04) ...
+Setting up gcc-8-base:amd64 (8.4.0-1ubuntu1~18.04) ...
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6628 files and directories currently installed.)
+Preparing to unpack .../libstdc++6_8.4.0-1ubuntu1~18.04_amd64.deb ...
+Unpacking libstdc++6:amd64 (8.4.0-1ubuntu1~18.04) over (8.3.0-26ubuntu1~18.04) ...
+Setting up libstdc++6:amd64 (8.4.0-1ubuntu1~18.04) ...
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6628 files and directories currently installed.)
+Preparing to unpack .../libgcc1_1%3a8.4.0-1ubuntu1~18.04_amd64.deb ...
+Unpacking libgcc1:amd64 (1:8.4.0-1ubuntu1~18.04) over (1:8.3.0-26ubuntu1~18.04) ...
+Setting up libgcc1:amd64 (1:8.4.0-1ubuntu1~18.04) ...
+Setting up mount (2.31.1-0.4ubuntu3.6) ...
+Processing triggers for mime-support (3.60ubuntu1) ...
+Processing triggers for libc-bin (2.27-3ubuntu1) ...
+Log ended: 2020-04-18  20:16:42
+
+Log started: 2020-04-18  20:17:34
+Selecting previously unselected package libcap2:amd64.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6628 files and directories currently installed.)
+Preparing to unpack .../libcap2_1%3a2.25-1.2_amd64.deb ...
+Unpacking libcap2:amd64 (1:2.25-1.2) ...
+Selecting previously unselected package libidn11:amd64.
+Preparing to unpack .../libidn11_1.33-2.1ubuntu1.2_amd64.deb ...
+Unpacking libidn11:amd64 (1.33-2.1ubuntu1.2) ...
+Selecting previously unselected package iputils-ping.
+Preparing to unpack .../iputils-ping_3%3a20161105-1ubuntu3_amd64.deb ...
+Unpacking iputils-ping (3:20161105-1ubuntu3) ...
+Selecting previously unselected package libcap2-bin.
+Preparing to unpack .../libcap2-bin_1%3a2.25-1.2_amd64.deb ...
+Unpacking libcap2-bin (1:2.25-1.2) ...
+Selecting previously unselected package libpam-cap:amd64.
+Preparing to unpack .../libpam-cap_1%3a2.25-1.2_amd64.deb ...
+Unpacking libpam-cap:amd64 (1:2.25-1.2) ...
+Setting up libcap2:amd64 (1:2.25-1.2) ...
+Setting up libidn11:amd64 (1.33-2.1ubuntu1.2) ...
+Setting up iputils-ping (3:20161105-1ubuntu3) ...
+Setting up libpam-cap:amd64 (1:2.25-1.2) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (No usable dialog-like program is installed, so the dialog based frontend cannot be used. at /usr/share/perl5/Debconf/FrontEnd/Dialog.pm line 76.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.26.1 /usr/local/share/perl/5.26.1 /usr/lib/x86_64-linux-gnu/perl5/5.26 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl/5.26 /usr/share/perl/5.26 /usr/local/lib/site_perl /usr/lib/x86_64-linux-gnu/perl-base) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+debconf: falling back to frontend: Teletype
+Setting up libcap2-bin (1:2.25-1.2) ...
+Processing triggers for libc-bin (2.27-3ubuntu1) ...
+Log ended: 2020-04-18  20:17:35
+
+Log started: 2020-04-18  20:18:13
+Selecting previously unselected package net-tools.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6671 files and directories currently installed.)
+Preparing to unpack .../net-tools_1.60+git20161116.90da8a0-1ubuntu1_amd64.deb ...
+Unpacking net-tools (1.60+git20161116.90da8a0-1ubuntu1) ...
+Setting up net-tools (1.60+git20161116.90da8a0-1ubuntu1) ...
+Log ended: 2020-04-18  20:18:13

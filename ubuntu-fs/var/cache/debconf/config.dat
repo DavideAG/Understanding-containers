@@ -130,11 +130,11 @@ Owners: libpam-runtime
 
 Name: libpam-runtime/profiles
 Template: libpam-runtime/profiles
-Value: unix
+Value: unix, capability
 Owners: libpam-runtime
 Variables:
- profile_names = unix, mkhomedir
- profiles = Unix authentication, Create home directory on login
+ profile_names = unix, mkhomedir, capability
+ profiles = Unix authentication, Create home directory on login, Inheritable Capabilities Management
 
 Name: libpam-runtime/title
 Template: libpam-runtime/title
@@ -154,5 +154,13 @@ Owners: libpam0g:amd64
 
 Name: libraries/restart-without-asking
 Template: libraries/restart-without-asking
-Owners: libc6, libc6:amd64, libpam0g:amd64
+Owners: libc6, libc6:amd64, libpam0g:amd64, libssl1.1:amd64
+
+Name: libssl1.1/restart-failed
+Template: libssl1.1/restart-failed
+Owners: libssl1.1:amd64
+
+Name: libssl1.1/restart-services
+Template: libssl1.1/restart-services
+Owners: libssl1.1:amd64
 
