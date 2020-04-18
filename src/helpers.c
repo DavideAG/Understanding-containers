@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "helpers.h"
 
 void printUsage() {
@@ -23,4 +24,11 @@ int parser(char *command) {
     }
     
     return COMMAND_NOT_FOUND;
+}
+
+void printRunningInfos(struct clone_args *args) {
+    fprintf(stdout, "ProcessID: %ld\n", (long) getpid());
+    printf("Running [ ");
+    for (int i = 0; i < args->n_args;) { printf("%s ", args->argv[i++]); }
+    printf("]\n");
 }

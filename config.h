@@ -2,3 +2,6 @@
 
 /* hostname */
 #define HOSTNAME "container"
+
+/* file system path */
+#define FILE_SYSTEM_PATH "../ubuntu-fs"

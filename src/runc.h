@@ -16,3 +16,9 @@ void set_container_hostname();
 
 /* /proc fs mount */
 void mount_proc();
+
+/* mounting the container file system -> ubuntu-fs */
+void mount_fs();
+
+/* umounting /proc from container */
+void umount_proc();

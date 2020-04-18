@@ -7,44 +7,48 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <sys/mount.h>
 #include <string.h>
+#include <errno.h>
 #include "helpers.h"
 #include "runc.h"
 #include "../config.h"
 
 
-int bootstrap_container(void *buf) {
+int bootstrap_container(void *args_par) {
+
+    struct clone_args *args = (struct clone_args *)args_par;
+
     /* here we can customize the container process */
     fprintf(stdout, "ProcessID: %ld\n", (long) getpid());
 
     /* setting new hostname */
     set_container_hostname();
     
-    /* mounting /proc in order to support ps */
+    /* mounting the new container file system */
+    mount_fs();
+
+    /* mounting /proc in order to support commands like `ps` */
     mount_proc();
 
-
-    system((char *)buf);
-    return 0;
+    if (execvp(args->argv[0], args->argv) != 0)
+        printErr("command exec failed");
+    
+    /* we should never reach here! */
+    exit(EXIT_FAILURE);
 }
 
 void runc(int n_values, char *command_input[]) {
     void *child_stack_bottom;
     void *child_stack_top;
     int pid;
-    char *buffer = (char *) calloc(COMAND_MAX_SIZE, sizeof(char));
+    struct clone_args args;
 
-    if (buffer == NULL)
-        printErr("buffer allocation");
+    /* why 2? just skipping <prog_name> <cmd> */
+    args.argv = &command_input[2];
+    args.n_args = n_values - 2;
 
-    fprintf(stdout, "ProcessID: %ld\n", (long) getpid());
-    fprintf(stdout, "Running [ ");
-    for (int i = 1; i < n_values-1;) {
-        fprintf(stdout, "%s ", command_input[++i]);
-        strcat(buffer, command_input[i]);
-        strcat(buffer, " ");
-    }
-    fprintf(stdout, "]\n");
+    printRunningInfos(&args);
 
     /* child stack allocation */
     child_stack_bottom = malloc(STACK_SIZE);
@@ -63,7 +67,7 @@ void runc(int n_values, char *command_input[]) {
 	 *                  inside the container.
      */
     pid = clone(bootstrap_container, child_stack_top,
-    CLONE_NEWUTS | CLONE_NEWPID | SIGCHLD, (void *) buffer);
+    CLONE_NEWUTS | CLONE_NEWPID | SIGCHLD, &args);
     if (pid < 0)
         printErr("Unable to create child process");
     
@@ -72,9 +76,11 @@ void runc(int n_values, char *command_input[]) {
 
     fprintf(stdout, "\nContainer process terminated.\n");
 
+    umount_proc();
+
     /* then free the memory */
     free(child_stack_bottom);
-    free(buffer);
+    
 }
 
 void set_container_hostname() {
@@ -83,6 +89,14 @@ void set_container_hostname() {
     if (ret < 0)
         printErr("hostname");
 }
+
+void mount_fs() {
+    if (chroot(FILE_SYSTEM_PATH) != 0)
+        printErr("chroot to the new file system");
+    if (chdir("/") < 0)
+        printErr("chdir to the root (/)");
+}
+
 
 void mount_proc() {
     /*
@@ -106,4 +120,14 @@ void mount_proc() {
      * container process will see the same `/proc` directory of the host.
      */
 
+    if (mount("proc", "/proc", "proc", 0, "") < 0)
+        printErr("mounting /proc");
+}
+
+void umount_proc() {
+    char *buffer = strdup(FILE_SYSTEM_PATH);
+    strcat(buffer, "/proc");
+    if (umount(buffer) != 0)
+        printErr("unmounting /proc");
+    fprintf(stdout, "/proc correctly umounted\n");
 }
