@@ -1,5 +1,7 @@
 #define N_PARAMS 2
 #define BUFF_SIZE 300
+#define MAP_BUF_SIZE 100
+
 
 /* commands */
 #define RUN 1
@@ -17,6 +19,7 @@
 struct clone_args {
    unsigned int n_args;
    char **argv;
+
 };
 
 /* print the usage of the tool */

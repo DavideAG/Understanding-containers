@@ -18,6 +18,10 @@ First of all we have to start with some tools that we will use. Below is a brief
 ## Namespaces
 Namespaces are a feature of the Linux kernel that partitions kernel resources such that one set of processes sees one set of resources while another set of processes sees a different set of resources.
 So, thanks by feature, we can limit what the "process can see". We will set up namespaces using Linux kernel syscalls.
+The [namespaces](http://man7.org/linux/man-pages/man7/namespaces.7.html) man page tells us there are 3 system calls that make up the API:
+- [clone](http://man7.org/linux/man-pages/man2/clone.2.html)
+- [setns](http://man7.org/linux/man-pages/man2/setns.2.html)
+- [unshare](http://man7.org/linux/man-pages/man2/unshare.2.html)
 
 ## Chroot
 Chroot is an operation that changes the apparent root directory for the current running process and its cildren. The modified environment is called a **chroot jail**.
@@ -50,3 +54,6 @@ Please report any issues, corrections or ideas on [GitHub](https://github.com/Da
 - [Containers From Scratch](https://www.youtube.com/watch?time_continue=9&v=8fi7uSYlOdc&feature=emb_logo) of [Liz Rice](https://www.lizrice.com/)
 - [nsroot](https://github.com/uit-no/nsroot) & [nsroot-paper](https://arxiv.org/ftp/arxiv/papers/1609/1609.03750.pdf) of [Inge Alexander Raknes, Bjørn Fjukstad, Lars Ailo Bongo - UiT The Arctic University of Norway](https://en.uit.no/startsida)
 - [Container Specification - runc](https://github.com/opencontainers/runc/blob/4932620b6237ed2a91aa5b5ca8cca6a73c10311b/libcontainer/SPEC.md)
+- [Linux Namespaces](https://medium.com/@teddyking/linux-namespaces-850489d3ccf) - [GitHub repository](https://github.com/teddyking/ns-process) of [Ed king](https://github.com/teddyking)
+- [Docker and Go: why did we decide to write Docker in Go?](https://www.slideshare.net/jpetazzo/docker-and-go-why-did-we-decide-to-write-docker-in-go) of [Google Developers Group meetup at Google West Campus 2 (Michael Crosby)](https://github.com/crosbymichael)
+- [USER_NAMESPACES](http://man7.org/linux/man-pages/man7/user_namespaces.7.html) of [Linux Programmer's Manual](http://man7.org/index.html)

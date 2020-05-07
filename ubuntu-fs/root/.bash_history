@@ -18,3 +18,13 @@ sudo apt update && sudo apt upgrade -y
 apt update && apt upgrade -y
 ls /bin/
 exit
+ls
+ls mnt/
+ls proc/
+ps
+ps fxa
+ps --all
+ping google.com
+whoami
+hostname
+exit

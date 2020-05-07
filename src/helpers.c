@@ -9,7 +9,6 @@ void printUsage() {
     printf("\n");
     printf("<cmd> should be:\n");
     printf("\t- run\n");
-    printf("\t- child\n");
 
     exit(EXIT_FAILURE);
 }
