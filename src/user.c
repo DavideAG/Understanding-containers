@@ -42,15 +42,11 @@ void update_map(char *mapping, char *map_file) {
 
     fd = open(map_file, O_RDWR);
     if (fd == -1) {
-        fprintf(stderr, "ERROR: open %s: %s\n", map_file,
-                strerror(errno));
-        exit(EXIT_FAILURE);
+        printErr(map_file);
     }
 
     if (write(fd, mapping, map_len) != map_len) {
-        fprintf(stderr, "ERROR: write %s: %s\n", map_file,
-                strerror(errno));
-        exit(EXIT_FAILURE);
+        printErr(map_file);
     }
 
     close(fd);

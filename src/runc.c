@@ -11,27 +11,44 @@
 #include <errno.h>
 #include <limits.h>
 #include <fcntl.h>
+#include <sys/mman.h>
 #include "helpers.h"
-#include "user.h"
 #include "runc.h"
+#include "user.h"
+#include "mount.h"
 #include "../config.h"
 
        
 int bootstrap_container(void *args_par) {
 
     struct clone_args *args = (struct clone_args *)args_par;
+    char ch;
+
+    /* Wait until the parent has updated the UID and GID mappings.
+    See the comment in main(). We wait for end of file on a
+    pipe that will be closed by the parent process once it has
+    updated the mappings. */
+
+    close(args->pipe_fd[1]);    /* Close our descriptor for the write
+                                    end of the pipe so that we see EOF
+                                    when parent closes its descriptor */
+    if (read(args->pipe_fd[0], &ch, 1) != 0) {
+        fprintf(stderr,
+                "Failure in child: read from pipe returned != 0\n");
+        exit(EXIT_FAILURE);
+    }
+
+    close(args->pipe_fd[0]);
+
 
     /* here we can customize the container process */
     fprintf(stdout, "ProcessID: %ld\n", (long) getpid());
 
     /* setting new hostname */
     set_container_hostname();
-    
+
     /* mounting the new container file system */
     mount_fs();
-
-    /* mounting /proc in order to support commands like `ps` */
-    mount_proc();
 
     if (execvp(args->argv[0], args->argv) != 0)
         printErr("command exec failed");
@@ -42,8 +59,7 @@ int bootstrap_container(void *args_par) {
 
 
 void runc(int n_values, char *command_input[]) {
-    void *child_stack_bottom;
-    void *child_stack_top;
+    void *child_stack;
     pid_t child_pid;
     struct clone_args args;
     char *uid_map = NULL;
@@ -57,14 +73,25 @@ void runc(int n_values, char *command_input[]) {
     printRunningInfos(&args);
 
     /* child stack allocation */
-    child_stack_bottom = malloc(STACK_SIZE);
-    if (child_stack_bottom == NULL)
-        printErr("child stack allocation");
+    child_stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+                        MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
 
-    /* stack will grow from top to bottom */
-    child_stack_top = child_stack_bottom + STACK_SIZE;
+    if (child_stack == MAP_FAILED)
+        printErr("child stack allocation");
     
     printf("Booting up your container...\n\n");
+
+    /*  We use a pipe to synchronize the parent and child, in order to 
+        ensure that the parent sets the UID and GID maps before the child 
+        calls execve(). This ensures that the child maintains its 
+        capabilities during the execve() in the common case where we 
+        want to map the child's effective user ID to 0 in the new user 
+        namespace. Without this synchronization, the child would lose 
+        its capabilities if it performed an execve() with nonzero 
+        user IDs (see the capabilities(7) man page for details of the 
+        transformation of a process's capabilities during execve()). */
+    if (pipe(args.pipe_fd) == -1) 
+        printErr("pipe");
 
     /* 
     * Here we can specify the namespace we want by using the appropriate
@@ -100,22 +127,22 @@ void runc(int n_values, char *command_input[]) {
                 CLONE_NEWUSER|
                 SIGCHLD;
                 /*TODO: CLONE_NEWCGROUP support */
-    child_pid = clone(bootstrap_container, child_stack_top, clone_flags, &args);
+    child_pid = clone(bootstrap_container, child_stack + STACK_SIZE, clone_flags, &args);
     if (child_pid < 0)
         printErr("Unable to create child process");
-    
+
     /* Update the UID and GUI maps in the child (see user.h) */
     map_uid_gid(child_pid);
 
+    /* Close the write end of the pipe, to signal to the child that we
+        have updated the UID and GID maps */
+
+    close(args.pipe_fd[1]);
+    
     if (waitpid(child_pid, NULL, 0) == -1)
         printErr("waitpid");
 
     fprintf(stdout, "\nContainer process terminated.\n");
-
-    umount_proc();
-
-    /* then free the memory */
-    free(child_stack_bottom);
     
 }
 
@@ -125,68 +152,4 @@ void set_container_hostname() {
     int ret = sethostname(hostname, sizeof(hostname)+1);
     if (ret < 0)
         printErr("hostname");
-}
-
-
-void mount_fs() {
-    if (chroot(FILE_SYSTEM_PATH) != 0)
-        printErr("chroot to the new file system");
-    if (chdir("/") < 0)
-        printErr("chdir to the root (/)");
-}
-
-
-void mount_proc() {
-    /*
-    * When we execute `ps`, we are able to see the process IDs. It will
-    * look inside the directory called `/proc` (ls /proc) to get process
-    * informations. From the host machine point of view, we can see all
-    * the processes running on it.
-    *
-    * `/proc` isn't just a regular file system but a pseudo file system.
-    * It does not contain real files but rather runtime system information
-    * (e.g. system memory, devices mounted, hardware configuration, etc).
-    * It is a mechanism the kernel uses to communicate information about
-    * running processes from the kernel space into user spaces. From the
-    * user space, it looks like a normal file system.
-    * For example, informations about the current self process is stored
-    * inside /proc/self. You can find the name of the process using
-    * [ls -l /proc/self/exe].
-    * Using a sequence of [ls -l /proc/self] you can see that your self
-    * process has a new processID because /proc/self changes at the start
-    * of a new process.
-    *
-    * Because we change the root inside the container, we don't currently
-    * have this `/procs` file system available. Therefore, we need to
-    * mount it otherwise the container process will see the same `/proc`
-    * directory of the host.
-    */
-
-    /*
-     * As proposed by docker runc spec (see the link in "Pointers" section
-     * of README.md)
-     * 
-     * MS_NOEXEC -> do not allow programs to be executed from this
-     *              filesystem
-     * MS_NOSUID -> Do not honor set-user-ID and set-group-ID bits or file
-     *              capabilities when executing programs from this filesystem.
-     * MS_NODEV  -> Do not allow access to devices (special files) on this
-     *              filesystem.
-     *
-     * for more informations about mount flags:
-     *      http://man7.org/linux/man-pages/man2/mount.2.html
-     */
-    unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV;
-    if (mount("proc", "/proc", "proc", mountflags, "") < 0)
-        printErr("mounting /proc");
-}
-
-
-//TODO: check why umount fails
-void umount_proc() {
-    char *buffer = strdup(FILE_SYSTEM_PATH);
-    strcat(buffer, "/proc");
-    if (umount(buffer) != 0)
-        printErr("unmounting /proc");
-    fprintf(stdout, "/proc correctly umounted\n");
 }

@@ -57,3 +57,5 @@ Please report any issues, corrections or ideas on [GitHub](https://github.com/Da
 - [Linux Namespaces](https://medium.com/@teddyking/linux-namespaces-850489d3ccf) - [GitHub repository](https://github.com/teddyking/ns-process) of [Ed king](https://github.com/teddyking)
 - [Docker and Go: why did we decide to write Docker in Go?](https://www.slideshare.net/jpetazzo/docker-and-go-why-did-we-decide-to-write-docker-in-go) of [Google Developers Group meetup at Google West Campus 2 (Michael Crosby)](https://github.com/crosbymichael)
 - [USER_NAMESPACES](http://man7.org/linux/man-pages/man7/user_namespaces.7.html) of [Linux Programmer's Manual](http://man7.org/index.html)
+- [What UID and GID are](https://geek-university.com/linux/uid-user-identifier-gid-group-identifier/)
+- [pivot_root new documentation](https://lwn.net/Articles/800381/) of [LWN.net](https://lwn.net/)

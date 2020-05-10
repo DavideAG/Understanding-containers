@@ -1,3 +1,4 @@
+#include <errno.h>
 #define N_PARAMS 2
 #define BUFF_SIZE 300
 #define MAP_BUF_SIZE 100
@@ -11,7 +12,7 @@
 #define COMMAND_NOT_FOUND -1
 
 #define printErr(msg)   do { \
-                            fprintf(stdout, "[ERROR] - %s\n", msg); \
+                            fprintf(stdout, "[ERROR] - %s failed (errno: %d): %s\n", msg, errno, strerror(errno)); \
                             exit(EXIT_FAILURE); \
                         } while (0)
 
@@ -19,7 +20,7 @@
 struct clone_args {
    unsigned int n_args;
    char **argv;
-
+   int pipe_fd[2];  /* Pipe used to synchronize parent and child */
 };
 
 /* print the usage of the tool */

@@ -1,5 +1,5 @@
 /*
- *  UID and GID mapping. This operation its necessary to avoid
+ * UID and GID mapping. This operation its necessary to avoid
  * the user regression. In order to setup the user namespace
  * properly, we also need to map UserID and GroupID.
  * 
@@ -43,7 +43,7 @@
  * The /proc/[pid]/uid_map and /proc/[pid]/gid_map files (available
  * since Linux 3.5) expose the mappings for user and group IDs inside
  * the user namespace for the process pid.  These files can be read
- * to view the mappings in a user namespace and written to (once) to
+ * to view the mappings in a user namespace and written to (once)
  * define the mappings.
  * 
  * for more details see:

@@ -1,0 +1,16 @@
+# This is private data. Do not parse.
+UID=121
+USER=gdm
+ACTIVE=0
+STATE=closing
+REMOTE=0
+TYPE=wayland
+CLASS=greeter
+SCOPE=session-c1.scope
+SEAT=seat0
+TTY=tty1
+SERVICE=gdm-launch-environment
+VTNR=1
+LEADER=1206
+REALTIME=1589124148883539
+MONOTONIC=15466849
