@@ -1,3 +1,0 @@
-E [10/May/2020:15:27:18 +0000] Unable to remove /run/cups/certs/0!
-E [10/May/2020:15:27:18 +0000] Unable to create certificate file /run/cups/certs/0 - No such file or directory
-E [10/May/2020:15:29:50 +0000] Unable to create certificate file /run/cups/certs/0 - No such file or directory

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "runc.h"
-#include "helpers.h"
+#include "helpers/helpers.h"
 
 
 int main(int argc, char *argv[]) {

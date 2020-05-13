@@ -12,10 +12,11 @@
 #include <limits.h>
 #include <fcntl.h>
 #include <sys/mman.h>
-#include "helpers.h"
+#include "./helpers/helpers.h"
 #include "runc.h"
-#include "user.h"
-#include "mount.h"
+#include "namespaces/user/user.h"
+#include "namespaces/mount/mount.h"
+#include "namespaces/network/network.h"
 #include "../config.h"
 
        
@@ -134,8 +135,12 @@ void runc(int n_values, char *command_input[]) {
     /* Update the UID and GUI maps in the child (see user.h) */
     map_uid_gid(child_pid);
 
+    /* configuring network */
+    start_network(child_pid);
+
     /* Close the write end of the pipe, to signal to the child that we
-        have updated the UID and GID maps */
+       have updated the UID/GID maps and that we updated the network
+       configuration */
 
     close(args.pipe_fd[1]);
     

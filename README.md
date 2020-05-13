@@ -59,3 +59,5 @@ Please report any issues, corrections or ideas on [GitHub](https://github.com/Da
 - [USER_NAMESPACES](http://man7.org/linux/man-pages/man7/user_namespaces.7.html) of [Linux Programmer's Manual](http://man7.org/index.html)
 - [What UID and GID are](https://geek-university.com/linux/uid-user-identifier-gid-group-identifier/)
 - [pivot_root new documentation](https://lwn.net/Articles/800381/) of [LWN.net](https://lwn.net/)
+- [Introducing Linux Network Namespaces (04-09-2013)](https://blog.scottlowe.org/2013/09/04/introducing-linux-network-namespaces/)
+- [Virtual Ethernet Device](http://man7.org/linux/man-pages/man4/veth.4.html) of [Linux Programmer's Manual](http://man7.org/index.html)

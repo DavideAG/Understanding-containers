@@ -4,4 +4,4 @@
 #define HOSTNAME "container"
 
 /* file system path */
-#define FILE_SYSTEM_PATH "../rootfs"
+#define FILE_SYSTEM_PATH "../root_fs"
