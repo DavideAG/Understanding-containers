@@ -1,48 +1,108 @@
 # Understanding-containers
 
-Nowadays light virtualization is a weapon used by many. Microservice based architecture is increasingly used and containers are the backbone of it.
+Nowadays light virtualization is a weapon used by many.
+[Microservice based architecture](https://ieeexplore.ieee.org/abstract/document/7943959)
+is increasingly used and containers are the backbone of it.
 
-Software like docker allow us to manage containers in a simple way but: how are they made? What features are really necessary for a process to be a container manager? It's time to get your hands dirty and make our homemade container.
+Software like [Docker](https://www.docker.com/) allow us to manage containers
+in a simple way but: how are they made?
+What features are really necessary for a process to be a container manager?
+It's time to get your hands dirty and make our homemade container.
 
 The questions we're gonna try to resolve are:
 
  - How container engine really works?
  - How are containers created by "facilitators" like Docker?
 
-First of all we have to start with some tools that we will use. Below is a brief summary of the tools (present in Linux) that we will use to build a container:
+First of all we have to start with some tools that we will use.
+Below is a brief summary of the tools (present in Linux) that we
+will use to build a container:
 
 - [Namespaces](#namespaces)
-- [Chroot](#chroot)
-- [Cgroups](#cgroups)
+- [Pivot_root](#Pivot_root)
+- [Cgroups](#Cgroups)
 
-## Namespaces
-Namespaces are a feature of the Linux kernel that partitions kernel resources such that one set of processes sees one set of resources while another set of processes sees a different set of resources.
-So, thanks by feature, we can limit what the "process can see". We will set up namespaces using Linux kernel syscalls.
-The [namespaces](http://man7.org/linux/man-pages/man7/namespaces.7.html) man page tells us there are 3 system calls that make up the API:
+## [Namespaces](https://en.wikipedia.org/wiki/Linux_namespaces)
+Namespaces are a feature of the Linux kernel that partitions kernel resources such
+that one set of processes sees one set of resources while another set of processes
+sees a different set of resources.
+So, thanks by feature, we can limit what the "process can see". We will set up
+namespaces using Linux kernel syscalls.
+The [namespaces](http://man7.org/linux/man-pages/man7/namespaces.7.html) man page
+tells us there are 3 system calls that make up the API:
 - [clone](http://man7.org/linux/man-pages/man2/clone.2.html)
 - [setns](http://man7.org/linux/man-pages/man2/setns.2.html)
 - [unshare](http://man7.org/linux/man-pages/man2/unshare.2.html)
 
-## Chroot
-Chroot is an operation that changes the apparent root directory for the current running process and its cildren. The modified environment is called a **chroot jail**.
+## [Pivot_root](http://man7.org/linux/man-pages/man2/pivot_root.2.html)
+pivot_root is a Linux API that changes the root mount in the mount namespace of the
+calling process.
 
 ## Cgroups
-Cgroups (control groups) is a Linux kernel feature that limits, accounts for, and isolates the resource usage (CPU, memory, disk I/O, network, etc...) of a collection of processes.
+Cgroups (control groups) is a Linux kernel feature that limits, accounts
+for, and isolates the resource usage (CPU, memory, disk I/O, network, etc...)
+of a collection of processes. Cgroups support has not yet been implemented in this
+repository. Work is still in progress
 
 ## Usage
-To create your homemade container you will need to compile the source code in the `"src"` directory. I personally recommend using [cmake](https://cmake.org/) to do this. Move to the `Understanding-containers` directory and then run
+To create your homemade container you will need to compile the source code in
+the `"src"` directory but first you have to use netsetgo_install.sh inside the
+tools folder. I personally recommend using [cmake](https://cmake.org/)
+to do this. Move to the `Understanding-containers` directory and then run the
+following commands
+
 ```bash
-~$  mkdir build && cd build && cmake .. && make -j $(getconf _NPROCESSORS_ONLN)
+~$  cd tools && sudo ./netsetgo_install.sh && cd ..
+~$  mkdir build && cd build
+~$  cmake .. && make -j $(getconf _NPROCESSORS_ONLN)
 ```
-Now in the build folder you'll have the executable ready to run! Feel the thrill of your new container now by running
+
+Now in the build folder you'll have the executable ready to run!
+Feel the thrill of your new container now by running
+
 ```bash
-~$  sudo .MyDocker run /bin/bash
+~$  .MyDocker run /bin/bash
 ```
-Now you can see your container directly from the inside. You can, for example, control the processes that are active inside it and notice how these are different from those of the host machine
-```bash
-~$  ps fxa
-```
+Now you'll be running bash inside your container.
+You can, for example, control the processes that are active inside it and
+notice how these are different from those of the host machine.
+
 When you want you can finish your container killing the process of his bash `exit`
+
+## Tree of the directors of this repository
+The folders in this repository are:
+
+	├── root_fs
+	├── src
+	│ 	├── helpers
+	│ 	└── namespaces
+	│ 	    ├── mount
+	│ 	    ├── network
+	│ 	    └── user
+	└── tools
+
+ - root_fs	[the root filesystem where your container will run]
+ - [src](https://github.com/DavideAG/Understanding-containers/tree/master/src)	[the source folder]
+ - [helpers](https://github.com/DavideAG/Understanding-containers/tree/master/src/helpers)	[helpers files]
+ - [namespaces](https://github.com/DavideAG/Understanding-containers/tree/master/src/namespaces) [support for various namespaces]
+ - [mount](https://github.com/DavideAG/Understanding-containers/tree/master/src/namespaces/mount)	[mount namespace reference folder]
+ - [network](https://github.com/DavideAG/Understanding-containers/tree/master/src/namespaces/network)	[network namespace reference folder]
+ - [user](https://github.com/DavideAG/Understanding-containers/tree/master/src/namespaces/user)	[user namespace reference folder]
+ - [tools](https://github.com/DavideAG/Understanding-containers/tree/master/tools)	[tools folders]
+
+Each folder (except root_fs) contains a more detailed instruction file called
+README.md
+the tools folder contains a binary file and scripts that will allow your
+namespace to connect to the internet. to support this you need a CNI, one
+of the scripts provided will allow you to use [`Polycube`](https://github.com/polycube-network/polycube) to do this, so
+you can also take advantage of ebpf technology!
+
+## Let's get started!
+If you want to better understand how namespaces work then you need to explore
+the `src` folder. Discover the README.md files inside the various folders,
+they will guide you in understanding the realization of the `containers`.
+I suggest you also take a look at the source files because they are full of
+useful comments that will help you understand how virtualization works.
 
 ## Suggestions, corrections and feedback
 
@@ -61,3 +121,6 @@ Please report any issues, corrections or ideas on [GitHub](https://github.com/Da
 - [pivot_root new documentation](https://lwn.net/Articles/800381/) of [LWN.net](https://lwn.net/)
 - [Introducing Linux Network Namespaces (04-09-2013)](https://blog.scottlowe.org/2013/09/04/introducing-linux-network-namespaces/)
 - [Virtual Ethernet Device](http://man7.org/linux/man-pages/man4/veth.4.html) of [Linux Programmer's Manual](http://man7.org/index.html)
+- [A deep dive into Linux namespaces](http://ifeanyi.co/posts/linux-namespaces-part-1/#pivot-root)
+- [netsetgo](https://github.com/teddyking/netsetgo) of [Ed King](https://github.com/teddyking)
+- [ns-process](https://github.com/teddyking/ns-process) of [Ed King](https://github.com/teddyking)
