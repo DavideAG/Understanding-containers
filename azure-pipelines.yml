@@ -18,11 +18,14 @@ jobs:
       pwd
       mkdir build
       cd build
-  - task: CMake@1
-    inputs:
-      workingDirectory: 'build'
-      cmakeArgs: '..'
-  - bash: make -j $(getconf _NPROCESSORS_ONLN)
+      cmake ..
+      make -j $(getconf _NPROCESSORS_ONLN)
+
+#  - task: CMake@1
+#    inputs:
+#      workingDirectory: 'build'
+#      cmakeArgs: '..'
+#  - bash: make -j $(getconf _NPROCESSORS_ONLN)
   
     
 
