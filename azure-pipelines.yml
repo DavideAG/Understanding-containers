@@ -14,11 +14,17 @@ jobs:
   pool:
     vmImage: 'ubuntu-latest'
   steps:
-  #- bash: mkdir build
+  - bash: |
+      pwd
+      mkdir build
+      cd build
   - task: CMake@1
     inputs:
       workingDirectory: 'build'
       cmakeArgs: '..'
+  - bash: make -j $(getconf _NPROCESSORS_ONLN)
+  
+    
 
 #steps:
 #- script: echo Hello, world!
