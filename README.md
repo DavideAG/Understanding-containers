@@ -1,4 +1,5 @@
 [![Build Status](https://dev.azure.com/davideg94/davideg_94/_apis/build/status/DavideAG.Understanding-containers?branchName=master)](https://dev.azure.com/davideg94/davideg_94/_build/latest?definitionId=1&branchName=master)
+[![CodeFactor](https://www.codefactor.io/repository/github/davideag/understanding-containers/badge)](https://www.codefactor.io/repository/github/davideag/understanding-containers)
 # Understanding containers
 
 Nowadays light virtualization is a weapon used by many.
