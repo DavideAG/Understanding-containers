@@ -1,22 +1,42 @@
 #define _GNU_SOURCE
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "runc.h"
 #include "helpers/helpers.h"
 
 
 int main(int argc, char *argv[]) {
-    if (argc < N_PARAMS)
-        printUsage();
 
-    switch(parser(argv[1])) {
-        case RUN:
-            runc(argc, argv);
-            break;
+	int option = 0;
 
-        default:
-            printErr("bad comand");
-    }
+    	if (argc < N_PARAMS)
+		printUsage();
 
-    exit(EXIT_SUCCESS);
+	while ((option = getopt(argc, argv, "anu")) != -1) {
+		switch(option) {
+			case 'a':
+				debug_print("case all");
+				runc(argc, argv);
+				break;
+			case 'n':
+				debug_print("case network");
+				break;
+			case 'u':
+				debug_print("case user");
+				break;
+	
+				// add here other cases
+
+			default:
+				goto usage;	
+		}
+	}
+
+	exit(EXIT_SUCCESS);
+
+usage:
+	printf("usage case");
+
 }

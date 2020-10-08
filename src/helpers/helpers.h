@@ -5,6 +5,7 @@
 #define BUFF_SIZE 300
 #define MAX_BUF_SIZE 100
 
+#define DEBUG 0
 
 /* commands */
 #define RUN 1
@@ -17,6 +18,9 @@
                             fprintf(stdout, "[ERROR] - %s failed (errno: %d): %s\n", msg, errno, strerror(errno)); \
                             exit(EXIT_FAILURE); \
                            } while (0)
+
+#define debug_print(msg) \
+	do { if (DEBUG) fprintf(stdout, "[DEBUG] - %s", msg); } while (0)
 
 /* clone args structure */
 struct clone_args {
