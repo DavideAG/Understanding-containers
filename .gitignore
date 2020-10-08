@@ -27,3 +27,6 @@
 
 # cmake build folder
 build/*
+
+# vim swp files
+*.swp
