@@ -9,6 +9,8 @@
 #include <limits.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <fcntl.h>
 #include "mount.h"
 #include "../../helpers/helpers.h"
 #include "../../../config.h"
@@ -31,49 +33,107 @@ pivot_root(const char *new_root, const char *put_old)
     return syscall(SYS_pivot_root, new_root, put_old);
 }
 
-void mount_fs() {
-    char path[PATH_MAX];
-    const char *new_root = FILE_SYSTEM_PATH;
-    const char *put_old = "pivot_root";
+//SEE func (l *linuxStandardInit) Init() on runc/libcontainer for clarification.
+void mount_fs(){
+ 
+ // Be sure umount events are not propagated to the host.
+ // TODO Check why this is done.
+  if(mount("","/","", MS_SLAVE | MS_REC, "") == -1)
+    printErr("mount failed");
 
-    /* This is the correct way to do pivot_root
-     * https://lwn.net/Articles/800381/
-     * This is the same process proposed in Docker runc
-     * https://github.com/opencontainers/runc/blob/4932620b6237ed2a91aa5b5ca8cca6a73c10311b/libcontainer/SPEC.md#filesystem */
+  /* Make parent mount private to make sure following bind mount does
+  * not propagate in other namespaces. Also it will help with kernel
+  * check pass in pivot_root. (IS_SHARED(new_mnt->mnt_parent))
+  * link1) https://bugzilla.redhat.com/show_bug.cgi?id=1361043 
+  * link2) check prepareRoot() function in runC/rootfs_linux_go */
+  if (mount("", "/", "", MS_PRIVATE, "") == 1)
+      printErr("mount-MS_PRIVATE");
 
-    /* Ensure that 'new_root' and its parent mount don't have
-     * shared propagation (which would cause pivot_root() to
-     * return an error), and prevent propagation of mount
-     * events to the initial mount namespace */
-    if (mount(NULL, "/", NULL, MS_REC | MS_PRIVATE, NULL) == 1)
-        printErr("mount-MS_PRIVATE");
+   /* Ensure that 'new_root' is a mount point */
+  if (mount(FILE_SYSTEM_PATH,FILE_SYSTEM_PATH, "bind", MS_BIND | MS_REC, "") == -1)
+      printErr("mount-MS_BIND");
 
-    /* Ensure that 'new_root' is a mount point */
-    if (mount(new_root, new_root, NULL, MS_BIND, NULL) == -1)
-        printErr("mount-MS_BIND");
+ /* While the documentation may claim otherwise, pivot_root(".", ".") is
+  * actually valid. What this results in is / being the new root but
+  * /proc/self/cwd being the old root. Since we can play around with the cwd
+  * with pivot_root this allows us to pivot without creating directories in
+  * the rootfs. Shout-outs to the LXC developers for giving us this idea.
+  * Instead of using a temporary directory for the pivot_root put-old, use "." both
+  * for new-root and old-root.  Then fchdir into the old root temporarily in
+  * order to unmount the old-root, and finallychdir back into our '/'. */
 
-    /* Create directory to which old root will be pivoted */
-    snprintf(path, sizeof(path), "%s/%s", new_root, put_old);
-    if (mkdir(path, 0777) && errno != EEXIST)
-        printErr("mkdir at mount_fs");
+  int oldroot = open("/",O_DIRECTORY | O_RDONLY,0);
+  if(oldroot == -1)
+    printErr("open oldroot");
 
-    /* And pivot root filesystem */
-    if (pivot_root(new_root, path) == -1)
-        printErr("pivot_root");
-    syscall(SYS_pivot_root, FILE_SYSTEM_PATH, put_old);
+  int newroot = open(FILE_SYSTEM_PATH,O_DIRECTORY | O_RDONLY,0);
+  if(newroot == -1)
+    printErr("open newroot");
 
-    /* Switch the current working working directory to "/" */
-    if (chdir("/") == -1)
-        printErr("chdir at mount_fs");
+  // Change to the new root so that the pivot_root actually acts on it.
+  if(fchdir(newroot)==-1)
+    printErr("fchdir newroot");
 
-    /* mounting /proc in order to support commands like `ps` */
-    mount_proc();
+  if(pivot_root(".",".")==-1)
+    printErr("pivot_root");
+  //1. By this point, both the CWD and root dir of the calling process are
+  //   in newroot (and so do not keep newroot busy, and thus don't prevent
+  //   the unmount).
+  //2. After the pivot_root() operation, there are two mount points
+  //   stacked at "/": oldroot and newroot, with oldroot a child mount
+  //   stacked on top of newroot (I did some experiments to verify that this
+  //   is so, by examination of /proc/self/mountinfo).
+  //3. The umount(".") operation unmounts the topmost mount from the pair
+  //   of mounts stacked at "/".
 
-    /* Unmount old root and remove mount point */
-    if (umount2(put_old, MNT_DETACH) == -1)
-        perror("umount2 at mount_fs");
-    if (rmdir(put_old) == -1)   
-        perror("rmdir at mount_fs");
+  /*
+     new_root and put_old may be the same  directory.   In  particular,
+     the following sequence allows a pivot-root operation without need‐
+     ing to create and remove a temporary directory put_old:
+
+         chdir(new_root);
+         pivot_root(".", ".");
+         umount2(".", MNT_DETACH);
+
+     This sequence succeeds because the pivot_root()  call  stacks  the
+     old root mount point (old_root) on top of the new root mount point
+     at /.  At that point, the calling  process's  root  directory  and
+     current  working  directory  refer  to  the  new  root mount point
+     (new_root).  During the subsequent umount()  call,  resolution  of
+     "."   starts  with  new_root  and then moves up the list of mounts
+     stacked at /, with the result that old_root is unmounted.
+  */
+
+  // Currently our "." is oldroot (according to the current kernel code).
+  // However, purely for safety, we will fchdir(oldroot) since there isn't
+  // really any guarantee from the kernel what /proc/self/cwd will be after a
+  // pivot_root(2).
+  if(fchdir(oldroot)==-1)
+    printErr("fchdir oldroot");
+
+  // Make oldroot rslave to make sure our unmounts don't propagate to the
+  // host (and thus bork the machine). We don't use rprivate because this is
+  // known to cause issues due to races where we still have a reference to a
+  // mount while a process in the host namespace are trying to operate on
+  // something they think has no mounts (devicemapper in particular).
+  if(mount("", ".", "", MS_SLAVE|MS_REC, "")==-1)
+    printErr("mount oldroot as slave");
+
+  /* Set up the proc VFS */
+  mount_proc();
+
+  // Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd.
+  if(umount2(".", MNT_DETACH)==-1)
+    printErr("unmount oldroot");
+
+
+
+  close(newroot);
+  close(oldroot);
+
+  // Switch back to our shiny new root.
+  chdir("/");
+
 }
 
 
