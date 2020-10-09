@@ -20,7 +20,7 @@
 #include "../config.h"
 
        
-int bootstrap_container(void *args_par) {
+int child_fn(void *args_par) {
 
     struct clone_args *args = (struct clone_args *)args_par;
     char ch;
@@ -58,7 +58,71 @@ int bootstrap_container(void *args_par) {
     exit(EXIT_FAILURE);
 }
 
+int drop_root_privileges(void) {  // returns 0 on success and -1 on failure
+	gid_t gid;
+	uid_t uid;
 
+	// no need to "drop" the privileges that you don't have in the first place!
+	if (getuid() != 0) {
+		return 0;
+	}
+
+	// when your program is invoked with sudo, getuid() will return 0 and you
+	// won't be able to drop your privileges
+	if ((uid = getuid()) == 0) {
+		const char *sudo_uid = secure_getenv("SUDO_UID");
+		if (sudo_uid == NULL) {
+			printf("environment variable `SUDO_UID` not found\n");
+			return -1;
+		}
+		errno = 0;
+		uid = (uid_t) strtoll(sudo_uid, NULL, 10);
+		if (errno != 0) {
+			perror("under-/over-flow in converting `SUDO_UID` to integer");
+			return -1;
+		}
+	}
+
+	// again, in case your program is invoked using sudo
+	if ((gid = getgid()) == 0) {
+		const char *sudo_gid = secure_getenv("SUDO_GID");
+		if (sudo_gid == NULL) {
+			printf("environment variable `SUDO_GID` not found\n");
+			return -1;
+		}
+		errno = 0;
+		gid = (gid_t) strtoll(sudo_gid, NULL, 10);
+		if (errno != 0) {
+			perror("under-/over-flow in converting `SUDO_GID` to integer");
+			return -1;
+		}
+	}
+
+	
+	if (setgid(gid) != 0) {
+		perror("setgid");
+		return -1;
+	}
+	if (setuid(uid) != 0) {
+		perror("setgid");
+		return -1;
+	}
+
+	// change your directory to somewhere else, just in case if you are in a
+	// root-owned one (e.g. /root)
+	if (chdir("/") != 0) {
+		perror("chdir");
+		return -1;
+	}
+
+	// check if we successfully dropped the root privileges
+	if (setuid(0) == 0 || seteuid(0) == 0) {
+		printf("could not drop root privileges!\n");
+		return -1;
+	}
+
+	return 0;
+}
 void runc(int n_values, char *command_input[]) {
     void *child_stack;
     pid_t child_pid;
@@ -128,22 +192,37 @@ void runc(int n_values, char *command_input[]) {
                 CLONE_NEWUSER|
                 SIGCHLD;
                 /*TODO: CLONE_NEWCGROUP support */
-    child_pid = clone(bootstrap_container, child_stack + STACK_SIZE, clone_flags, &args);
+    child_pid = clone(child_fn, child_stack + STACK_SIZE, clone_flags, &args);
     if (child_pid < 0)
         printErr("Unable to create child process");
 
-    /* Update the UID and GUI maps in the child (see user.h) */
+    /* configuring network 
+     *
+     * TODO
+     * This requires root privileges. The problem is that if the root user tries to write
+     * to uid_map the entry '0 1000 1', since it is not user 1000, the mapping will fail,
+     * resulting in a container running as nobody. 
+     * Setting uid=1000 before writing the mapping is not possible (read point 1 in
+     * above map_uid_gid() function).*/
+    prepare_netns(child_pid);
+      
+    /*    Update the UID and GUI maps in the child (see user.h).
+     *    
+     * 1. The /proc/PID/uid_map file is owned by the user ID that created the namespace,
+     *    and is writeable only by that user. 
+     * 2. After the creation of a new user namespace, the uid_map file of one of the processes
+     *    in the namespace may be written to once to define the mapping of user IDs in the new
+     *    user namespace. An attempt to write more than once to a uid_map file in a user namespace
+     *    fails with the error EPERM. Similar rules apply for gid_map files.*/
     map_uid_gid(child_pid);
-
-    /* configuring network */
-    start_network(child_pid);
-
+ 
     /* Close the write end of the pipe, to signal to the child that we
-       have updated the UID/GID maps and that we updated the network
-       configuration */
-
+     * have updated the UID/GID maps and that we updated the network
+     * configuration */
     close(args.pipe_fd[1]);
-    
+
+    //drop_root_privileges();
+
     if (waitpid(child_pid, NULL, 0) == -1)
         printErr("waitpid");
 

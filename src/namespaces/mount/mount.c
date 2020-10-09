@@ -38,18 +38,18 @@ void mount_fs(){
  
  // Be sure umount events are not propagated to the host.
  // TODO Check why this is done.
-  if(mount("","/","", MS_SLAVE | MS_REC, "") == -1)
+ if(mount("","/","", MS_SLAVE | MS_REC, "") == -1)
     printErr("mount failed");
 
   /* Make parent mount private to make sure following bind mount does
-  * not propagate in other namespaces. Also it will help with kernel
-  * check pass in pivot_root. (IS_SHARED(new_mnt->mnt_parent))
-  * link1) https://bugzilla.redhat.com/show_bug.cgi?id=1361043 
-  * link2) check prepareRoot() function in runC/rootfs_linux_go */
+   * not propagate in other namespaces. Also it will help with kernel
+   * check pass in pivot_root. (IS_SHARED(new_mnt->mnt_parent))
+   * link1) https://bugzilla.redhat.com/show_bug.cgi?id=1361043 
+   * link2) check prepareRoot() function in runC/rootfs_linux_go */
   if (mount("", "/", "", MS_PRIVATE, "") == 1)
       printErr("mount-MS_PRIVATE");
 
-   /* Ensure that 'new_root' is a mount point */
+  /* Ensure that 'new_root' is a mount point */
   if (mount(FILE_SYSTEM_PATH,FILE_SYSTEM_PATH, "bind", MS_BIND | MS_REC, "") == -1)
       printErr("mount-MS_BIND");
 
@@ -179,7 +179,7 @@ void mount_proc() {
      */
     
 
-    unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV;
+    unsigned long mountflags = MS_NOSUID | MS_NOEXEC | MS_NODEV;
 
     if (mkdir("/proc", 0755) && errno != EEXIST) 
         printErr("mkdir when mounting proc"); 
