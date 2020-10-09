@@ -70,4 +70,5 @@ void create_veth(int sock_fd, char *ifname, char *peername);
 void move_if_to_pid_netns(int sock_fd, char *ifname, int netns);
 int get_netns_fd(int pid);
 
+int drop_root_privileges(void);
 #endif //ISOLATE_NETNS_H

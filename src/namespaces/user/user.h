@@ -79,3 +79,6 @@ void update_map(char *mapping, char *map_file);
  * purpose of the following function.
  */
 void proc_setgroups_write(pid_t child_pid, char *str);
+
+
+void drop_caps();

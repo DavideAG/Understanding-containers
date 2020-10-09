@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <string.h>
+#include <sys/capability.h>
 #include "../../helpers/helpers.h"
 #include "user.h"
 
@@ -84,4 +85,43 @@ void proc_setgroups_write(pid_t child_pid, char *str) {
             strerror(errno));
 
     close(fd);
+}
+
+void drop_caps(){
+
+	cap_t caps;
+	cap_value_t cap_list[14] = {CAP_CHOWN, 
+				    CAP_DAC_OVERRIDE,
+				    CAP_FOWNER,
+				    CAP_FSETID,
+				    CAP_KILL,
+				    CAP_SETGID,
+				    CAP_SETUID,
+				    CAP_SETPCAP,
+				    CAP_NET_BIND_SERVICE,
+				    CAP_NET_RAW,
+				    CAP_SYS_CHROOT,
+				    CAP_MKNOD,
+				    CAP_AUDIT_WRITE,
+				    CAP_SETFCAP
+				   };
+	
+	caps = cap_get_proc();
+	if(cap_clear(caps) == -1)
+		printErr("Error clearing caps - ");
+	
+	/*if(cap_set_flag(caps,CAP_EFFECTIVE,14,cap_list,CAP_SET) == -1){
+		printErr("Error setting capabilities - ");
+	}
+	*/
+	if (cap_set_proc(caps) == -1)
+        /* handle error */;
+	
+	
+	if (cap_free(caps) == -1)
+        /* handle error */;
+
+
+
+
 }
