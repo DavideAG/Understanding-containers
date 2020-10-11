@@ -127,18 +127,18 @@ void runc(int n_values, char *command_input[]) {
     * sudo and run our program as a non-root user!
     */
     int clone_flags =
-                CLONE_NEWNS  |
-                CLONE_NEWUTS |
-                CLONE_NEWIPC |
-                CLONE_NEWPID |
-                CLONE_NEWNET |
-                CLONE_NEWUSER|
-                SIGCHLD;
+                CLONE_NEWNS  	|
+                CLONE_NEWUTS 	|
+                CLONE_NEWIPC 	|
+                CLONE_NEWPID 	|
+                CLONE_NEWNET 	|
+                CLONE_NEWUSER	|
+		CLONE_NEWCGROUP;
                 /*TODO: CLONE_NEWCGROUP 
 		 *      CLONE_NEWTIME
 		 */
 
-    child_pid = clone(child_fn, child_stack + STACK_SIZE, clone_flags, &args);
+    child_pid = clone(child_fn, child_stack + STACK_SIZE, clone_flags | SIGCHLD, &args);
     if (child_pid < 0)
         printErr("Unable to create child process");
 

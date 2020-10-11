@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <string.h>
-#include <sys/capability.h>
+#include <sys/capability.h> // sudo apt install libcap-dev
 #include "../../helpers/helpers.h"
 #include "user.h"
 
@@ -120,8 +120,6 @@ void drop_caps(){
 	
 	if (cap_free(caps) == -1)
         /* handle error */;
-
-
 
 
 }

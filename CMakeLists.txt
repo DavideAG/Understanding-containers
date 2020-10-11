@@ -16,7 +16,6 @@ AUX_SOURCE_DIRECTORY(./src/namespaces/user/ MyDocker_SRC_namespaces_user)
 # Set network namespaces source directory
 AUX_SOURCE_DIRECTORY(./src/namespaces/network/ MyDocker_SRC_namespaces_network)
 
-
 # Create executable
 ADD_EXECUTABLE(
 	MyDocker
@@ -27,3 +26,5 @@ ADD_EXECUTABLE(
 	${MyDocker_SRC_namespaces_network}
 )
 SET_TARGET_PROPERTIES(MyDocker PROPERTIES COMPILE_FLAGS "-lcap")
+
+target_link_libraries(MyDocker PRIVATE cap)
