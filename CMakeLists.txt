@@ -26,3 +26,4 @@ ADD_EXECUTABLE(
 	${MyDocker_SRC_namespaces_user}
 	${MyDocker_SRC_namespaces_network}
 )
+SET_TARGET_PROPERTIES(MyDocker PROPERTIES COMPILE_FLAGS "-lcap")

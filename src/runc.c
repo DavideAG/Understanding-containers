@@ -20,7 +20,7 @@
 #include "../config.h"
 
        
-int bootstrap_container(void *args_par) {
+int child_fn(void *args_par) {
 
     struct clone_args *args = (struct clone_args *)args_par;
     char ch;
@@ -31,8 +31,9 @@ int bootstrap_container(void *args_par) {
     updated the mappings. */
 
     close(args->pipe_fd[1]);    /* Close our descriptor for the write
-                                    end of the pipe so that we see EOF
-                                    when parent closes its descriptor */
+                                   dend of the pipe so that we see EOF
+                                   when parent closes its descriptor.
+			        */
     if (read(args->pipe_fd[0], &ch, 1) != 0) {
         fprintf(stderr,
                 "Failure in child: read from pipe returned != 0\n");
@@ -40,7 +41,6 @@ int bootstrap_container(void *args_par) {
     }
 
     close(args->pipe_fd[0]);
-
 
     /* here we can customize the container process */
     fprintf(stdout, "ProcessID: %ld\n", (long) getpid());
@@ -51,13 +51,20 @@ int bootstrap_container(void *args_par) {
     /* mounting the new container file system */
     mount_fs();
 
+    
+    /* UID 0 maps to UID 1000 outside. Ensure that the exec process
+     * will run as UID 0 in order to drop its privileges. */
+    if (setgid(0) == -1)
+        printErr("Failed to setgid: %m\n");
+    if (setuid(0) == -1)
+        printErr("Failed to setuid: %m\n");
+
     if (execvp(args->argv[0], args->argv) != 0)
         printErr("command exec failed");
     
     /* we should never reach here! */
     exit(EXIT_FAILURE);
 }
-
 
 void runc(int n_values, char *command_input[]) {
     void *child_stack;
@@ -127,23 +134,37 @@ void runc(int n_values, char *command_input[]) {
                 CLONE_NEWNET |
                 CLONE_NEWUSER|
                 SIGCHLD;
-                /*TODO: CLONE_NEWCGROUP support */
-    child_pid = clone(bootstrap_container, child_stack + STACK_SIZE, clone_flags, &args);
+                /*TODO: CLONE_NEWCGROUP 
+		 *      CLONE_NEWTIME
+		 */
+
+    child_pid = clone(child_fn, child_stack + STACK_SIZE, clone_flags, &args);
     if (child_pid < 0)
         printErr("Unable to create child process");
 
-    /* Update the UID and GUI maps in the child (see user.h) */
-    map_uid_gid(child_pid);
+     prepare_netns(child_pid);
+      
+    /*    Update the UID and GUI maps in the child (see user.h).
+     *    
+     * 1. The /proc/PID/uid_map file is owned by the user ID that created the namespace,
+     *    and is writeable only by that user. 
+     * 2. After the creation of a new user namespace, the uid_map file of one of the processes
+     *    in the namespace may be written to once to define the mapping of user IDs in the new
+     *    user namespace. An attempt to write more than once to a uid_map file in a user namespace
+     *    fails with the error EPERM. Similar rules apply for gid_map files.
+     *    */
+    
+    char *cmd;
 
-    /* configuring network */
-    start_network(child_pid);
-
+    map_uid_gid(child_pid); 
+ 
     /* Close the write end of the pipe, to signal to the child that we
-       have updated the UID/GID maps and that we updated the network
-       configuration */
+     * have updated the UID/GID maps and that we updated the network
+     * configuration */
+    //close(args.pipe_fd[1]);
 
     close(args.pipe_fd[1]);
-    
+
     if (waitpid(child_pid, NULL, 0) == -1)
         printErr("waitpid");
 
