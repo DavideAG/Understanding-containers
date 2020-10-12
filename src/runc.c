@@ -18,6 +18,7 @@
 #include "namespaces/mount/mount.h"
 #include "namespaces/network/network.h"
 #include "../config.h"
+#include "./seccomp/seccomp_config.h"
 
        
 int child_fn(void *args_par) {
@@ -35,15 +36,11 @@ int child_fn(void *args_par) {
                                    when parent closes its descriptor.
 			        */
     if (read(args->pipe_fd[0], &ch, 1) != 0) {
-        fprintf(stderr,
-                "Failure in child: read from pipe returned != 0\n");
+        fprintf(stderr,"Failure in child: read from pipe returned != 0\n");
         exit(EXIT_FAILURE);
     }
 
     close(args->pipe_fd[0]);
-
-    /* here we can customize the container process */
-    fprintf(stdout, "ProcessID: %ld\n", (long) getpid());
 
     /* setting new hostname */
     set_container_hostname();
@@ -51,19 +48,30 @@ int child_fn(void *args_par) {
     /* mounting the new container file system */
     mount_fs();
 
-    
     /* UID 0 maps to UID 1000 outside. Ensure that the exec process
      * will run as UID 0 in order to drop its privileges. */
-    if (setgid(0) == -1)
-        printErr("Failed to setgid: %m\n");
-    if (setuid(0) == -1)
-        printErr("Failed to setuid: %m\n");
+    if (setresgid(0,0,0) == -1)
+	    printErr("Failed to setgid: %m\n");
+    if (setresuid(0,0,0) == -1)
+	    printErr("Failed to setuid: %m\n");
+
+    fprintf(stderr,"=> child euid : %ld\n",(long)geteuid());
+   
+    drop_caps();
+    sys_filter();
 
     if (execvp(args->argv[0], args->argv) != 0)
         printErr("command exec failed");
     
     /* we should never reach here! */
     exit(EXIT_FAILURE);
+}
+
+void set_container_hostname() {
+    char *hostname = strdup(HOSTNAME);
+    int ret = sethostname(hostname, sizeof(hostname)+1);
+    if (ret < 0)
+        printErr("hostname");
 }
 
 void runc(int n_values, char *command_input[]) {
@@ -139,30 +147,24 @@ void runc(int n_values, char *command_input[]) {
 		 */
 
     child_pid = clone(child_fn, child_stack + STACK_SIZE, clone_flags, &args);
+
     if (child_pid < 0)
         printErr("Unable to create child process");
 
-     prepare_netns(child_pid);
-      
-    /*    Update the UID and GUI maps in the child (see user.h).
-     *    
-     * 1. The /proc/PID/uid_map file is owned by the user ID that created the namespace,
-     *    and is writeable only by that user. 
-     * 2. After the creation of a new user namespace, the uid_map file of one of the processes
-     *    in the namespace may be written to once to define the mapping of user IDs in the new
-     *    user namespace. An attempt to write more than once to a uid_map file in a user namespace
-     *    fails with the error EPERM. Similar rules apply for gid_map files.
-     *    */
-    
-    char *cmd;
+    prepare_netns(child_pid);
+     
+    /* We force a mapping of 0 1000 1, this means that in the child namespace there will
+     * be only UID 0. 
+     * Any call to setuid different from 0 fails because we does not specify
+     * any other UID in the child namespace.
+     */
 
+    fprintf(stderr,"=> parent euid : %ld\n",(long)geteuid());
     map_uid_gid(child_pid); 
  
     /* Close the write end of the pipe, to signal to the child that we
      * have updated the UID/GID maps and that we updated the network
      * configuration */
-    //close(args.pipe_fd[1]);
-
     close(args.pipe_fd[1]);
 
     if (waitpid(child_pid, NULL, 0) == -1)
@@ -173,9 +175,3 @@ void runc(int n_values, char *command_input[]) {
 }
 
 
-void set_container_hostname() {
-    char *hostname = strdup(HOSTNAME);
-    int ret = sethostname(hostname, sizeof(hostname)+1);
-    if (ret < 0)
-        printErr("hostname");
-}

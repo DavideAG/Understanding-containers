@@ -8,6 +8,7 @@
 #include <limits.h>
 #include <string.h>
 #include <sys/capability.h>
+#include <sys/prctl.h>
 #include "../../helpers/helpers.h"
 #include "user.h"
 
@@ -87,8 +88,55 @@ void proc_setgroups_write(pid_t child_pid, char *str) {
     close(fd);
 }
 
-void drop_caps(){
+int drop_caps(){
 
+	fprintf(stderr, "=> dropping capabilities...");
+	int drop_caps[] = {
+		CAP_AUDIT_CONTROL,
+		CAP_AUDIT_READ,
+		CAP_AUDIT_WRITE,
+		CAP_BLOCK_SUSPEND,
+		CAP_DAC_READ_SEARCH,
+		CAP_FSETID,
+		CAP_IPC_LOCK,
+		CAP_MAC_ADMIN,
+		CAP_MAC_OVERRIDE,
+		CAP_MKNOD,
+		CAP_SETFCAP,
+		CAP_SYSLOG,
+		CAP_SYS_ADMIN,
+		CAP_SYS_BOOT,
+		CAP_SYS_MODULE,
+		CAP_SYS_NICE,
+		CAP_SYS_RAWIO,
+		CAP_SYS_RESOURCE,
+		CAP_SYS_TIME,
+		CAP_WAKE_ALARM
+	};
+	size_t num_caps = sizeof(drop_caps) / sizeof(*drop_caps);
+	fprintf(stderr, "bounding...");
+	for (size_t i = 0; i < num_caps; i++) {
+		if (prctl(PR_CAPBSET_DROP, drop_caps[i], 0, 0, 0)) {
+			fprintf(stderr, "prctl failed: %m\n");
+			return 1;
+		}
+	}
+	fprintf(stderr, "inheritable...");
+	cap_t caps = NULL;
+	if (!(caps = cap_get_proc())
+	    || cap_set_flag(caps, CAP_INHERITABLE, num_caps, drop_caps, CAP_CLEAR)
+	    || cap_set_proc(caps)) {
+		fprintf(stderr, "failed: %m\n");
+		if (caps) cap_free(caps);
+		return 1;
+	}
+	cap_free(caps);
+	fprintf(stderr, "done.\n");
+	return 0;
+
+}
+
+/*
 	cap_t caps;
 	cap_value_t cap_list[14] = {CAP_CHOWN, 
 				    CAP_DAC_OVERRIDE,
@@ -110,18 +158,14 @@ void drop_caps(){
 	if(cap_clear(caps) == -1)
 		printErr("Error clearing caps - ");
 	
-	/*if(cap_set_flag(caps,CAP_EFFECTIVE,14,cap_list,CAP_SET) == -1){
+	if(cap_set_flag(caps,CAP_EFFECTIVE,14,cap_list,CAP_SET) == -1){
 		printErr("Error setting capabilities - ");
 	}
-	*/
+
 	if (cap_set_proc(caps) == -1)
-        /* handle error */;
-	
+		printErr("Cannot set caps - ");	
 	
 	if (cap_free(caps) == -1)
-        /* handle error */;
+		printErr("Cannot free caps - ");
 
-
-
-
-}
+*/
