@@ -16,6 +16,9 @@ AUX_SOURCE_DIRECTORY(./src/namespaces/user/ MyDocker_SRC_namespaces_user)
 # Set network namespaces source directory
 AUX_SOURCE_DIRECTORY(./src/namespaces/network/ MyDocker_SRC_namespaces_network)
 
+# Set cgroup namespaces source directory
+AUX_SOURCE_DIRECTORY(./src/namespaces/cgroup MyDocker_SRC_namespaces_cgroup)
+
 # Create executable
 ADD_EXECUTABLE(
 	MyDocker

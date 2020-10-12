@@ -6,26 +6,6 @@
 #include <sched.h>
 #include "helpers.h"
 
-void printUsage() {
-    printf("Usage: MyDocker <cmd> <params>\n");
-    printf("\n");
-    printf("<cmd> should be:\n");
-    printf("\t- run\n");
-
-    exit(EXIT_FAILURE);
-}
-
-int parser(char *command) {
-    if (strcmp(command, RUN_COMMAND) == 0)
-    {
-        return RUN;
-    } else if (strcmp(command, CHILD_COMMAND) == 0)
-    {
-        return CHILD;
-    }
-    
-    return COMMAND_NOT_FOUND;
-}
 
 void printRunningInfos(struct clone_args *args) {
     fprintf(stdout, "ProcessID: %ld\n", (long) getpid());
@@ -256,8 +236,9 @@ void move_if_to_pid_netns(int sock_fd, char *ifname, int netns)
     send_nlmsg(sock_fd, &req.n);
 }
 
-
-int drop_root_privileges(void) {  // returns 0 on success and -1 on failure
+// returns 0 on success and -1 on failure
+int drop_root_privileges(void)
+{
 	gid_t gid;
 	uid_t uid;
 
@@ -321,4 +302,16 @@ int drop_root_privileges(void) {  // returns 0 on success and -1 on failure
 	}
 
 	return 0;
+}
+
+// returns the child entrypoint command
+void get_child_entrypoint(int optind, char **arguments, size_t size, char *child_entrypoint)
+{
+    int index;
+
+    for (index = optind; index < size; ++index)
+    {
+        strcat(child_entrypoint, arguments[index]);
+        strcat(child_entrypoint, " ");
+    }
 }
