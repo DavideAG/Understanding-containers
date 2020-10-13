@@ -134,15 +134,36 @@ void mount_fs(){
 	  fprintf(stderr,"=> sysfs mount failed.\n");
 	  exit(EXIT_FAILURE);
   }
-  
-  /*Set up the /dev/pts fs */
-  if(!mount_pts()){
+ 
+  /* Set up the /dev fs */
+  if(!mount_dev()){
+	  fprintf(stderr,"=> /dev mount done.\n");
+  }else{
+	  fprintf(stderr,"=> /dev mount failed.\n");
+	  exit(EXIT_FAILURE);
+  }
+
+  /* Set up the /dev/pts fs */
+  if(!mount_dev_pts()){
 	  fprintf(stderr,"=> /dev/pts mount done.\n");
   }else{
 	  fprintf(stderr,"=> /dev/pts mount failed.\n");
 	  exit(EXIT_FAILURE);
+  } 
+
+  if(!mount_dev_shm()){
+	  fprintf(stderr,"=> /dev/shm mount done.\n");
+  }else{
+	  fprintf(stderr,"=> /dev/shm mount failed.\n");
+	  exit(EXIT_FAILURE);
   }
 
+  if(!mount_dev_mqueue()){
+	  fprintf(stderr,"=> /dev/queue mount done.\n");
+  }else{
+	  fprintf(stderr,"=> /dev/queue mount failed.\n");
+	  exit(EXIT_FAILURE);
+  } 
 
   // Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd.
   if(umount2(".", MNT_DETACH)==-1)
@@ -155,6 +176,15 @@ void mount_fs(){
 
   // Switch back to our shiny new root.
   chdir("/");
+
+/*
+  if(!create_dev_null()){
+	  fprintf(stderr,"=> /dev/null device done.\n");
+  }else{
+	  fprintf(stderr,"=> /dev/null device failed.\n");
+	  exit(EXIT_FAILURE);
+  }
+*/
 
 }
 
@@ -206,7 +236,7 @@ int mount_proc() {
     if (mkdir("/proc", 0755) && errno != EEXIST)
 	    return -1;
     
-    if (mount("proc", "/proc", "proc", mountflags, NULL))
+    if (mount("proc", "/proc", "proc", mountflags, NULL) == -1)
 	   return -1;
     
     return 0; 
@@ -214,18 +244,32 @@ int mount_proc() {
 
 int mount_sysfs(){
 
-	unsigned long mountflags = MS_NOSUID | MS_NOEXEC | MS_NODEV;
+	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV | MS_RDONLY;
 
 	if(mkdir("/sys", 0755) && errno != EEXIST)
 		return -1;
 
-	if(mount("sysfs","/sys","sysfs",mountflags,NULL))
+	if(mount("sysfs","/sys","sysfs",mountflags,NULL) == -1)
 		return -1;
         
 	return 0;
 }
 
-int mount_pts(){
+int mount_dev(){
+
+	unsigned long mountflags = MS_NOEXEC | MS_STRICTATIME;
+
+	if(mkdir("/dev", 0755) && errno != EEXIST)
+		return -1;
+
+	if(mount("dev","/dev","tmpfs",mountflags,"mode=755,size=65536k") == -1)
+		return -1;
+        
+	return 0;
+
+}
+
+int mount_dev_pts(){
 
 	/* The shell is actually within a pty but the pty itself is outside the container,
 	 * so commands like 'tty' thinks we are not within a tty. However, if you directly 
@@ -233,13 +277,55 @@ int mount_pts(){
 	 * the pty within the container instead of outside.
 	 */
 
-	unsigned long mountflags = MS_NOSUID | MS_NOEXEC;
+	unsigned long mountflags = MS_NOEXEC | MS_NOSUID;
 
 	if(mkdir("/dev/pts", 0755) && errno != EEXIST)
 		return -1;
 
-	if(mount("devpts","/dev/pts","devpts",mountflags,NULL))
+	//TODO: gid=5
+	if(mount("devpts","/dev/pts","devpts",mountflags,"newinstance,ptmxmode=066,mode=620") == -1)
 		return -1;
         
 	return 0;
+}
+
+int mount_dev_shm(){
+
+	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV;
+
+	if(mkdir("/dev/shm", 0755) && errno != EEXIST)
+		return -1;
+
+	//TODO: gid=5
+	if(mount("shm","/dev/shm","tmpfs",mountflags,"mode=1777,size=65536k") == -1)
+		return -1;
+        
+	return 0;
+}
+
+int mount_dev_mqueue(){
+	
+	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV;
+
+	if(mkdir("/dev/mqueue", 0755) && errno != EEXIST)
+		return -1;
+
+	if(mount("mqueue","/dev/mqueue","mqueue",mountflags,NULL) == -1)
+		return -1;
+        
+	return 0;
+}
+
+int create_dev_null(){
+/* One notable restriction is the inability to use the mknod command. 
+ * Permission is denied for device creation within the container when 
+ * run by the root user.
+ */	
+	unsigned long mknodflags = S_IFCHR | 0666 ;
+		
+ 	if(mknod("/dev/null",mknodflags, 0) == -1)
+		return -1;
+
+	return 0;
+
 }

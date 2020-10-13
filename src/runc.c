@@ -19,6 +19,10 @@
 #include "namespaces/network/network.h"
 #include "../config.h"
 #include "./seccomp/seccomp_config.h"
+ #include <sys/types.h>
+ #include <sys/stat.h>
+       #include <fcntl.h>
+       #include <unistd.h>
 
 
 int child_fn(void *args_par)
@@ -55,17 +59,11 @@ int child_fn(void *args_par)
     mount_fs();
 
    /* The root user inside the container must have less privileges than
-     * the real host root, so drop some capablities. */
-    //drop_caps();
+    * the real host root, so drop some capablities. */
+    drop_caps();
 
-    //sys_filter();
-    /* UID 0 maps to UID 1000 outside. Ensure that the exec process
-     * will run as UID 0 in order to drop its privileges. */
-    if (setgid(0) == -1)
-        printErr("Failed to setgid.\n");
-    if (setuid(0) == -1)
-        printErr("Failed to setuid.\n");
-    
+    sys_filter();
+      
     if (execvp(args->command[0], args->command) != 0)
         printErr("command exec failed");
 
@@ -156,16 +154,13 @@ void runc(struct runc_args *runc_arguments)
         printErr("Unable to create child process");
 
     prepare_netns(child_pid);
-     
+
     /* We force a mapping of 0 1000 1, this means that in the child namespace there will
      * be only UID 0. 
      * Any call to setuid different from 0 fails because we does not specify
      * any other UID in the child namespace.
-     */
-
-    fprintf(stderr,"=> parent euid : %ld\n",(long)geteuid());
-
-    /*    Update the UID and GUI maps in the child (see user.h).
+     * 
+     * Update the UID and GUI maps in the child (see user.h).
      *    
      * 1. The /proc/PID/uid_map file is owned by the user ID that created the
      *    namespace, and is writeable only by that user. 

@@ -36,5 +36,16 @@ int mount_proc();
 /* /sys fs mount */
 int mount_sysfs();
 
+/* /dev mount */
+int mount_dev();
+
 /* /dev/pts mount */
-int mount_pts();
+int mount_dev_pts();
+
+/* /dev/shm mount */
+int mount_dev_shm();
+
+/*/dev/mqueue mount */
+int mount_dev_mqueue();
+
+int create_dev_null();
