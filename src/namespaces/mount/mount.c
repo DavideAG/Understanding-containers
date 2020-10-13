@@ -58,9 +58,9 @@ void mount_fs(){
   * /proc/self/cwd being the old root. Since we can play around with the cwd
   * with pivot_root this allows us to pivot without creating directories in
   * the rootfs. Shout-outs to the LXC developers for giving us this idea.
-  * Instead of using a temporary directory for the pivot_root put-old, use "." both
-  * for new-root and old-root.  Then fchdir into the old root temporarily in
-  * order to unmount the old-root, and finallychdir back into our '/'. */
+  * Instead of using a temporary directory for the pivot_root put-old, use "."
+  * both for new-root and old-root.  Then fchdir into the old root temporarily
+  * in order to unmount the old-root, and finallychdir back into our '/'. */
 
   int oldroot = open("/",O_DIRECTORY | O_RDONLY,0);
   if(oldroot == -1)
@@ -126,14 +126,11 @@ void mount_fs(){
   if(umount2(".", MNT_DETACH)==-1)
     printErr("unmount oldroot");
 
-
-
   close(newroot);
   close(oldroot);
 
   // Switch back to our shiny new root.
   chdir("/");
-
 }
 
 
