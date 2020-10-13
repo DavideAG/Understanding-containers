@@ -60,11 +60,39 @@ following commands
 ```
 
 Now in the build folder you'll have the executable ready to run!
-Feel the thrill of your new container now by running
+Here the help of the tool:
+```bash
+~$ sudo ./MyDocker -h
+Usage: sudo ./MyDocker <options> <entrypoint>
+
+<options> should be:
+	- a	run all namespaces
+	- c	cgrops used to limit resources.
+		This command must can be chained with at least one of:
+		- M <memory_limit> 				[1-4294967296]	default: 1073741824 (1GB)
+		- C <percentage_of_cpu_shares> 	[1-100]			default: 25
+		- P <max_pids> 					[10-32768]		default: 64
+		- I <io_weighht> 				[10-1000]		default: 10
+```
+Feel the thrill of your new container now by running. An example of a command can be:
 
 ```bash
-~$  .MyDocker run /bin/bash
+~$  sudo ./MyDocker -ac -C 50 -I 20 -P 333 /bin/bash
 ```
+
+In this case the following cgroup resource limits are applied:
+
+<center>
+
+| Resource | Applied value |
+|---|---|
+| memory_limit | 1GB |
+| cpu_shares | 50 |
+| max_pids | 333 |
+| io_weight | 20 |
+
+</center>
+
 Now you'll be running bash inside your container.
 You can, for example, control the processes that are active inside it and
 notice how these are different from those of the host machine.

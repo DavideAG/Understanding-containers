@@ -26,8 +26,12 @@ int main(int argc, char *argv[])
 	struct runc_args *runc_arguments = NULL;
 	struct cgroup_args *cgroup_arguments = NULL;
 
-	while ((option = getopt(argc, argv, "acM:C:P:I:")) != -1) {
+	while ((option = getopt(argc, argv, "hacM:C:P:I:")) != -1) {
 		switch(option) {
+			case 'h':
+				debug_print("case help\n");
+				goto usage;
+			
 			case 'a':
 				debug_print("case all\n");
 				runall = true;
@@ -130,6 +134,7 @@ int main(int argc, char *argv[])
 				// add other cases here
 
 			default:
+				printf("Command not found.\n\n");
 				goto usage;	
 		}
 	}
@@ -169,7 +174,7 @@ int main(int argc, char *argv[])
 
 
 usage:
-	printf("Usage: MyDocker <options> <entrypoint>\n");
+	printf("Usage: sudo ./MyDocker <options> <entrypoint>\n");
     printf("\n");
     printf("<options> should be:\n");
     printf("\t- a\trun all namespaces\n");
@@ -180,7 +185,6 @@ usage:
 	printf("\t\t- C <percentage_of_cpu_shares> \t[1-100]\t\tdefault: 25\n");
 	printf("\t\t- P <max_pids> \t\t\t[10-32768]\tdefault: 64\n");
 	printf("\t\t- I <io_weighht> \t\t[10-1000]\tdefault: 10\n");
-	printf(" ");
 	exit(EXIT_FAILURE);
 
 abort:
