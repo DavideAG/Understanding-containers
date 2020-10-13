@@ -29,6 +29,15 @@ ADD_EXECUTABLE(
 	${MyDocker_SRC_namespaces_network}
 	${MyDocker_SRC_namespaces_cgroup}
 )
+
+find_path(SECCOMP NAMES "linux/seccomp.h")
+if(NOT SECCOMP)
+  message(FATAL_ERROR "Couldn't find linux/seccomp.h. You may need to upgrade your kernel.")
+endif()
+
 SET_TARGET_PROPERTIES(MyDocker PROPERTIES COMPILE_FLAGS "-lcap")
+SET_TARGET_PROPERTIES(MyDocker PROPERTIES COMPILE_FLAGS "-lseccomp")
 
 target_link_libraries(MyDocker PRIVATE cap)
+
+

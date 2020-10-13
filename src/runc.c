@@ -18,6 +18,11 @@
 #include "namespaces/mount/mount.h"
 #include "namespaces/network/network.h"
 #include "../config.h"
+#include "./seccomp/seccomp_config.h"
+ #include <sys/types.h>
+ #include <sys/stat.h>
+       #include <fcntl.h>
+       #include <unistd.h>
 
 
 int child_fn(void *args_par)
@@ -39,8 +44,12 @@ int child_fn(void *args_par)
 
     close(args->pipe_fd[0]);
 
-    /* here we can customize the container process */
-    fprintf(stdout, "ProcessID: %ld\n", (long) getpid());
+    /* UID 0 maps to UID 1000 outside. Ensure that the exec process
+     * will run as UID 0 in order to drop its privileges. */
+    if (setresgid(0,0,0) == -1)
+	    printErr("Failed to setgid.\n");
+    if (setresuid(0,0,0) == -1)
+	    printErr("Failed to setuid.\n");
 
     /* setting new hostname */
     set_container_hostname();
@@ -52,14 +61,13 @@ int child_fn(void *args_par)
     if (args->resources != NULL) {
         apply_cgroups(args->resources);
     }
+ 
+   /* The root user inside the container must have less privileges than
+    * the real host root, so drop some capablities. */
+    drop_caps();
 
-    /* UID 0 maps to UID 1000 outside. Ensure that the exec process
-     * will run as UID 0 in order to drop its privileges. */
-    if (setgid(0) == -1)
-        printErr("Failed to setgid: %m\n");
-    if (setuid(0) == -1)
-        printErr("Failed to setuid: %m\n");
-
+    sys_filter();
+      
     if (execvp(args->command[0], args->command) != 0)
         printErr("command exec failed");
 
@@ -70,6 +78,7 @@ abort:
 
 void runc(struct runc_args *runc_arguments)
 {
+
     pid_t child_pid;
     void *child_stack;
     char *uid_map = NULL;
@@ -145,12 +154,18 @@ void runc(struct runc_args *runc_arguments)
     child_pid = clone(child_fn, child_stack + STACK_SIZE,
             clone_flags | SIGCHLD, &args);
 
+
     if (child_pid < 0)
         printErr("Unable to create child process");
 
-     prepare_netns(child_pid);
-      
-    /*    Update the UID and GUI maps in the child (see user.h).
+    prepare_netns(child_pid);
+
+    /* We force a mapping of 0 1000 1, this means that in the child namespace there will
+     * be only UID 0. 
+     * Any call to setuid different from 0 fails because we does not specify
+     * any other UID in the child namespace.
+     * 
+     * Update the UID and GUI maps in the child (see user.h).
      *    
      * 1. The /proc/PID/uid_map file is owned by the user ID that created the
      *    namespace, and is writeable only by that user. 
@@ -198,3 +213,4 @@ void print_running_infos(struct clone_args *args)
 
     fprintf(stdout, "%s]\n", buf);
 }
+
