@@ -13,3 +13,5 @@ apt install iproute2
 ip --version
 ip --help
 exit
+pwd
+exit

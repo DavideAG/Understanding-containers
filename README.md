@@ -46,6 +46,12 @@ for, and isolates the resource usage (CPU, memory, disk I/O, network, etc...)
 of a collection of processes. Cgroups support has not yet been implemented in this
 repository. Work is still in progress
 
+## Dependencies
+In order to compile this tool is necessary to install the following libraries:
+```bash
+~$  sudo apt install libcap-dev seccomp-dev -y
+```
+
 ## Usage
 To create your homemade container you will need to compile the source code in
 the `"src"` directory but first you have to use netsetgo_install.sh inside the
