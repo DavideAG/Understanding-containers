@@ -120,7 +120,29 @@ void mount_fs(){
     printErr("mount oldroot as slave");
 
   /* Set up the proc VFS */
-  mount_proc();
+  if(!mount_proc()){
+	  fprintf(stderr,"=> procfs mount done.\n");
+  }else{
+	  fprintf(stderr,"=> procfs mount failed.\n");
+	  exit(EXIT_FAILURE);
+  }
+
+  /* Set up the sysfs */
+  if(!mount_sysfs()){
+	  fprintf(stderr,"=> sysfs mount done.\n");
+  }else{
+	  fprintf(stderr,"=> sysfs mount failed.\n");
+	  exit(EXIT_FAILURE);
+  }
+  
+  /*Set up the /dev/pts fs */
+  if(!mount_pts()){
+	  fprintf(stderr,"=> /dev/pts mount done.\n");
+  }else{
+	  fprintf(stderr,"=> /dev/pts mount failed.\n");
+	  exit(EXIT_FAILURE);
+  }
+
 
   // Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd.
   if(umount2(".", MNT_DETACH)==-1)
@@ -137,7 +159,7 @@ void mount_fs(){
 }
 
 
-void mount_proc() {
+int mount_proc() {
     /*
     * When we execute `ps`, we are able to see the process IDs. It will
     * look inside the directory called `/proc` (ls /proc) to get process
@@ -181,9 +203,43 @@ void mount_proc() {
 
     unsigned long mountflags = MS_NOSUID | MS_NOEXEC | MS_NODEV;
 
-    if (mkdir("/proc", 0755) && errno != EEXIST) 
-        printErr("mkdir when mounting proc"); 
+    if (mkdir("/proc", 0755) && errno != EEXIST)
+	    return -1;
     
-    if (mount("proc", "/proc", "proc", mountflags, NULL)) 
-        printErr("mount proc"); 
+    if (mount("proc", "/proc", "proc", mountflags, NULL))
+	   return -1;
+    
+    return 0; 
+}
+
+int mount_sysfs(){
+
+	unsigned long mountflags = MS_NOSUID | MS_NOEXEC | MS_NODEV;
+
+	if(mkdir("/sys", 0755) && errno != EEXIST)
+		return -1;
+
+	if(mount("sysfs","/sys","sysfs",mountflags,NULL))
+		return -1;
+        
+	return 0;
+}
+
+int mount_pts(){
+
+	/* The shell is actually within a pty but the pty itself is outside the container,
+	 * so commands like 'tty' thinks we are not within a tty. However, if you directly 
+	 * call the isatty() function, it will return true. The solution would be to create 
+	 * the pty within the container instead of outside.
+	 */
+
+	unsigned long mountflags = MS_NOSUID | MS_NOEXEC;
+
+	if(mkdir("/dev/pts", 0755) && errno != EEXIST)
+		return -1;
+
+	if(mount("devpts","/dev/pts","devpts",mountflags,NULL))
+		return -1;
+        
+	return 0;
 }

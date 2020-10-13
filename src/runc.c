@@ -42,23 +42,25 @@ int child_fn(void *args_par) {
 
     close(args->pipe_fd[0]);
 
+    /* UID 0 maps to UID 1000 outside. Ensure that the exec process
+     * will run as UID 0 in order to drop its privileges. */
+    if (setresgid(0,0,0) == -1)
+	    printErr("Failed to setgid.\n");
+    if (setresuid(0,0,0) == -1)
+	    printErr("Failed to setuid.\n");
+
+
     /* setting new hostname */
     set_container_hostname();
 
     /* mounting the new container file system */
     mount_fs();
 
-    /* UID 0 maps to UID 1000 outside. Ensure that the exec process
-     * will run as UID 0 in order to drop its privileges. */
-    if (setresgid(0,0,0) == -1)
-	    printErr("Failed to setgid: %m\n");
-    if (setresuid(0,0,0) == -1)
-	    printErr("Failed to setuid: %m\n");
+    /* The root user inside the container must have less privileges than
+     * the real host root, so drop some capablities. */
+    //drop_caps();
 
-    fprintf(stderr,"=> child euid : %ld\n",(long)geteuid());
-   
-    drop_caps();
-    sys_filter();
+    //sys_filter();
 
     if (execvp(args->argv[0], args->argv) != 0)
         printErr("command exec failed");

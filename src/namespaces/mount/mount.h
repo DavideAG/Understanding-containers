@@ -31,4 +31,10 @@
 void mount_fs();
 
 /* /proc fs mount */
-void mount_proc();
+int mount_proc();
+
+/* /sys fs mount */
+int mount_sysfs();
+
+/* /dev/pts mount */
+int mount_pts();
