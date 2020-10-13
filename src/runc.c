@@ -22,8 +22,8 @@
 
 int child_fn(void *args_par)
 {
-    struct clone_args *args = (struct clone_args *) args_par;
     char ch;
+    struct clone_args *args = (struct clone_args *) args_par;
 
     /* Wait until the parent has updated the UID and GID mappings.
     See the comment in main(). We wait for end of file on a
@@ -47,6 +47,11 @@ int child_fn(void *args_par)
 
     /* mounting the new container file system */
     mount_fs();
+
+    /* apply resource limitations */
+    if (args->resources != NULL) {
+        apply_cgroups(args->resources);
+    }
 
     /* UID 0 maps to UID 1000 outside. Ensure that the exec process
      * will run as UID 0 in order to drop its privileges. */
@@ -134,6 +139,7 @@ void runc(struct runc_args *runc_arguments)
     /* add CLONE_NEWGROUP if required */
     if (runc_arguments->resources != NULL) {
         clone_flags |= CLONE_NEWCGROUP;
+        args.resources = runc_arguments->resources;
     }
 
     child_pid = clone(child_fn, child_stack + STACK_SIZE,

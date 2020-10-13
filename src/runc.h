@@ -10,9 +10,10 @@ struct runc_args {
 
 /* This structure identifies the child_fn arguments */
 struct clone_args {
-   int pipe_fd[2];              /* Pipe used to synchronize parent and child */
-   char **command;              /* The command table that will be executed */
-   size_t command_size;         /* lenght of the command table */
+   int pipe_fd[2];                 /* Used to synchronize parent and child */
+   char **command;                 /* The command table that will be executed */
+   size_t command_size;            /* lenght of the command table */
+   struct cgroup_args *resources;  /* cgroup support parameters */
 };
 
 /* create and run a new containered process */

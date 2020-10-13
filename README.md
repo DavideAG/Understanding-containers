@@ -160,4 +160,4 @@ Please report any issues, corrections or ideas on [GitHub](https://github.com/Da
 - [A deep dive into Linux namespaces](http://ifeanyi.co/posts/linux-namespaces-part-1/#pivot-root)
 - [netsetgo](https://github.com/teddyking/netsetgo) of [Ed King](https://github.com/teddyking)
 - [ns-process](https://github.com/teddyking/ns-process) of [Ed King](https://github.com/teddyking)
-- [Linux containers in 500 lines of code](https://blog.lizzie.io/linux-containers-in-500-loc.html#org65bbba4) of [Lizzie Dixon](https://github.com/startling)
+- [Linux containers in 500 lines of code](https://blog.lizzie.io/linux-containers-in-500-loc.html) of [Lizzie Dixon](https://github.com/startling)

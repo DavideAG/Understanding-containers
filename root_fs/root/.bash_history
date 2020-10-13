@@ -15,3 +15,7 @@ ip --help
 exit
 pwd
 exit
+l
+cd /sys/
+ls
+exit
