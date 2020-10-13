@@ -38,18 +38,18 @@ void mount_fs(){
  
  // Be sure umount events are not propagated to the host.
  // TODO Check why this is done.
-  if(mount("","/","", MS_SLAVE | MS_REC, "") == -1)
+ if(mount("","/","", MS_SLAVE | MS_REC, "") == -1)
     printErr("mount failed");
 
   /* Make parent mount private to make sure following bind mount does
-  * not propagate in other namespaces. Also it will help with kernel
-  * check pass in pivot_root. (IS_SHARED(new_mnt->mnt_parent))
-  * link1) https://bugzilla.redhat.com/show_bug.cgi?id=1361043 
-  * link2) check prepareRoot() function in runC/rootfs_linux_go */
+   * not propagate in other namespaces. Also it will help with kernel
+   * check pass in pivot_root. (IS_SHARED(new_mnt->mnt_parent))
+   * link1) https://bugzilla.redhat.com/show_bug.cgi?id=1361043 
+   * link2) check prepareRoot() function in runC/rootfs_linux_go */
   if (mount("", "/", "", MS_PRIVATE, "") == 1)
       printErr("mount-MS_PRIVATE");
 
-   /* Ensure that 'new_root' is a mount point */
+  /* Ensure that 'new_root' is a mount point */
   if (mount(FILE_SYSTEM_PATH,FILE_SYSTEM_PATH, "bind", MS_BIND | MS_REC, "") == -1)
       printErr("mount-MS_BIND");
 
@@ -58,9 +58,9 @@ void mount_fs(){
   * /proc/self/cwd being the old root. Since we can play around with the cwd
   * with pivot_root this allows us to pivot without creating directories in
   * the rootfs. Shout-outs to the LXC developers for giving us this idea.
-  * Instead of using a temporary directory for the pivot_root put-old, use "." both
-  * for new-root and old-root.  Then fchdir into the old root temporarily in
-  * order to unmount the old-root, and finallychdir back into our '/'. */
+  * Instead of using a temporary directory for the pivot_root put-old, use "."
+  * both for new-root and old-root.  Then fchdir into the old root temporarily
+  * in order to unmount the old-root, and finallychdir back into our '/'. */
 
   int oldroot = open("/",O_DIRECTORY | O_RDONLY,0);
   if(oldroot == -1)
@@ -126,14 +126,11 @@ void mount_fs(){
   if(umount2(".", MNT_DETACH)==-1)
     printErr("unmount oldroot");
 
-
-
   close(newroot);
   close(oldroot);
 
   // Switch back to our shiny new root.
   chdir("/");
-
 }
 
 
@@ -179,7 +176,7 @@ void mount_proc() {
      */
     
 
-    unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV;
+    unsigned long mountflags = MS_NOSUID | MS_NOEXEC | MS_NODEV;
 
     if (mkdir("/proc", 0755) && errno != EEXIST) 
         printErr("mkdir when mounting proc"); 
