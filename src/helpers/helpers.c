@@ -7,12 +7,6 @@
 #include "helpers.h"
 
 
-void printRunningInfos(struct clone_args *args) {
-    fprintf(stdout, "ProcessID: %ld\n", (long) getpid());
-    printf("Running [ ");
-    for (int i = 0; i < args->n_args;) { printf("%s ", args->argv[i++]); }
-    printf("]\n");
-}
 static void addattr_l(
         struct nlmsghdr *n, int maxlen, __u16 type,
         const void *data, __u16 datalen)
@@ -304,14 +298,17 @@ int drop_root_privileges(void)
 	return 0;
 }
 
-// returns the child entrypoint command
-void get_child_entrypoint(int optind, char **arguments, size_t size, char *child_entrypoint)
+// write the child entrypoint command
+void get_child_entrypoint(int optind,
+            char **arguments,
+            size_t size,
+            char ***child_entrypoint)
 {
     int index;
 
+    (*child_entrypoint) = (char **) malloc(size - optind);
     for (index = optind; index < size; ++index)
     {
-        strcat(child_entrypoint, arguments[index]);
-        strcat(child_entrypoint, " ");
+        (*child_entrypoint)[index - optind] = strdup(arguments[index]);
     }
 }

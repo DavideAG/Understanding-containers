@@ -19,25 +19,22 @@
 #include "namespaces/network/network.h"
 #include "../config.h"
 
-       
-int child_fn(void *args_par) {
 
-    struct clone_args *args = (struct clone_args *)args_par;
+int child_fn(void *args_par)
+{
+    struct clone_args *args = (struct clone_args *) args_par;
     char ch;
 
     /* Wait until the parent has updated the UID and GID mappings.
     See the comment in main(). We wait for end of file on a
     pipe that will be closed by the parent process once it has
     updated the mappings. */
-
     close(args->pipe_fd[1]);    /* Close our descriptor for the write
-                                   dend of the pipe so that we see EOF
-                                   when parent closes its descriptor.
-			        */
+                                   end of the pipe so that we see EOF
+                                   when parent closes its descriptor. */
     if (read(args->pipe_fd[0], &ch, 1) != 0) {
-        fprintf(stderr,
-                "Failure in child: read from pipe returned != 0\n");
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "Failure in child: read from pipe returned != 0\n");
+        goto abort;
     }
 
     close(args->pipe_fd[0]);
@@ -51,7 +48,6 @@ int child_fn(void *args_par) {
     /* mounting the new container file system */
     mount_fs();
 
-    
     /* UID 0 maps to UID 1000 outside. Ensure that the exec process
      * will run as UID 0 in order to drop its privileges. */
     if (setgid(0) == -1)
@@ -59,26 +55,26 @@ int child_fn(void *args_par) {
     if (setuid(0) == -1)
         printErr("Failed to setuid: %m\n");
 
-    if (execvp(args->argv[0], args->argv) != 0)
+    if (execvp(args->command[0], args->command) != 0)
         printErr("command exec failed");
-    
+
     /* we should never reach here! */
+abort:
     exit(EXIT_FAILURE);
 }
 
-void runc(int n_values, char *command_input[]) {
-    void *child_stack;
+void runc(struct runc_args *runc_arguments)
+{
     pid_t child_pid;
-    struct clone_args args;
+    void *child_stack;
     char *uid_map = NULL;
     char *gid_map = NULL;
+    struct clone_args args;
 
+    args.command = runc_arguments->child_entrypoint;
+    args.command_size = runc_arguments->child_entrypoint_size;
 
-    /* why 2? just skipping <prog_name> <cmd> */
-    args.argv = &command_input[2];
-    args.n_args = n_values - 2;
-
-    printRunningInfos(&args);
+    print_running_infos(&args);
 
     /* child stack allocation */
     child_stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
@@ -132,13 +128,17 @@ void runc(int n_values, char *command_input[]) {
                 CLONE_NEWIPC 	|
                 CLONE_NEWPID 	|
                 CLONE_NEWNET 	|
-                CLONE_NEWUSER	|
-		CLONE_NEWCGROUP;
-                /*TODO: CLONE_NEWCGROUP 
-		 *      CLONE_NEWTIME
-		 */
+                CLONE_NEWUSER;
+        /*TODO: CLONE_NEWTIME */
+    
+    /* add CLONE_NEWGROUP if required */
+    if (runc_arguments->resources != NULL) {
+        clone_flags |= CLONE_NEWCGROUP;
+    }
 
-    child_pid = clone(child_fn, child_stack + STACK_SIZE, clone_flags | SIGCHLD, &args);
+    child_pid = clone(child_fn, child_stack + STACK_SIZE,
+            clone_flags | SIGCHLD, &args);
+
     if (child_pid < 0)
         printErr("Unable to create child process");
 
@@ -146,36 +146,49 @@ void runc(int n_values, char *command_input[]) {
       
     /*    Update the UID and GUI maps in the child (see user.h).
      *    
-     * 1. The /proc/PID/uid_map file is owned by the user ID that created the namespace,
-     *    and is writeable only by that user. 
-     * 2. After the creation of a new user namespace, the uid_map file of one of the processes
-     *    in the namespace may be written to once to define the mapping of user IDs in the new
-     *    user namespace. An attempt to write more than once to a uid_map file in a user namespace
-     *    fails with the error EPERM. Similar rules apply for gid_map files.
-     *    */
-    
-    char *cmd;
-
+     * 1. The /proc/PID/uid_map file is owned by the user ID that created the
+     *    namespace, and is writeable only by that user. 
+     * 2. After the creation of a new user namespace, the uid_map file of one of
+     *    the processes in the namespace may be written to once to define the
+     *    mapping of user IDs in the new user namespace. An attempt to write
+     *    more than once to a uid_map file in a user namespace fails with the
+     *    error EPERM. Similar rules apply for gid_map files.
+     */
     map_uid_gid(child_pid); 
  
     /* Close the write end of the pipe, to signal to the child that we
      * have updated the UID/GID maps and that we updated the network
      * configuration */
-    //close(args.pipe_fd[1]);
-
     close(args.pipe_fd[1]);
 
     if (waitpid(child_pid, NULL, 0) == -1)
         printErr("waitpid");
 
     fprintf(stdout, "\nContainer process terminated.\n");
-    
 }
 
-
-void set_container_hostname() {
+void set_container_hostname()
+{
     char *hostname = strdup(HOSTNAME);
     int ret = sethostname(hostname, sizeof(hostname)+1);
+    
     if (ret < 0)
         printErr("hostname");
+}
+
+/* prints the processID anche the entrypoint command of the container */
+void print_running_infos(struct clone_args *args)
+{
+    char buf[COMAND_MAX_SIZE];
+    char entrypoint[COMAND_MAX_SIZE];
+
+    fprintf(stdout, "ProcessID: %ld\n", (long) getpid());
+
+    snprintf(buf, COMAND_MAX_SIZE, "Running [ ");
+    for (int i = 0; i < args->command_size;) {
+        strcat(buf, args->command[i++]);
+        strcat(buf, " ");
+    }
+
+    fprintf(stdout, "%s]\n", buf);
 }

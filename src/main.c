@@ -5,13 +5,13 @@
 #include <unistd.h>
 #include "runc.h"
 #include "helpers/helpers.h"
+#include "namespaces/cgroup/cgroup.h"
 
 
-int main(int argc, char *argv[]) {
-
+int main(int argc, char *argv[])
+{
 	int option = 0;
-	const char *errstr;
-	char child_entrypoint[MAX_BUF_SIZE];
+	char **child_entrypoint;
 	bool empty = false;
 	bool runall = false;
 	bool pids_flag = false;
@@ -23,6 +23,8 @@ int main(int argc, char *argv[]) {
 	long max_weight = 0;
 	long cpu_shares = 0;
 	long memory_limit = 0;
+	struct runc_args *runc_arguments = NULL;
+	struct cgroup_args *cgroup_arguments = NULL;
 
 	while ((option = getopt(argc, argv, "acM:C:P:I:")) != -1) {
 		switch(option) {
@@ -30,112 +32,141 @@ int main(int argc, char *argv[]) {
 				debug_print("case all\n");
 				runall = true;
 				break;
+
 			case 'c':
 				debug_print("case cgroup\n");
 				cgroup_flag = true;
 				break;
+
 			case 'M':
 				debug_print("case memory limit\n");
 				empty = (bool) !strcmp(optarg, "");
+
 				if (cgroup_flag && !empty)
 				{
 					memory_limit = strtol(optarg, NULL, 10);
 					empty != empty;
+
 					if (memory_limit < 1 ||
 						memory_limit > MAX_MEMORY_ALLOCABLE) {
 						printErr("memory_limit value out of range");
 						goto abort;
 					}
+
 				} else {
 					printErr("-M must be chained with -c and the argument "
 					"cannot be empty. \nCommand");
 					goto abort;
 				}
+				memory_flag = true;
 				break;
+
 			case 'C':
 				debug_print("case cpu shares\n");
 				empty = (bool) !strcmp(optarg, "");
+
 				if (cgroup_flag && !empty)
 				{
 					cpu_shares = strtol(optarg, NULL, 10);
+					empty != empty;
+
 					if (cpu_shares < 1 || cpu_shares > MAX_CPU_SHARES) {
 						printErr("cpu_shares value out of range");
 						goto abort;
 					}
-					empty != empty;
+
 				} else {
 					printErr("-C must be chained with -c and the argument "
 					"cannot be empty. \nCommand");
 					goto abort;
 				}
+				cpu_shares_flag = true;
 				break;
+
 			case 'P':
 				debug_print("case pids\n");
 				empty = (bool) !strcmp(optarg, "");
+
 				if (cgroup_flag && !empty)
 				{
 					max_pids = strtol(optarg, NULL, 10);
+					empty != empty;
+
 					if (max_pids < MIN_PIDS || max_pids > MAX_PIDS) {
 						printErr("max_pids value out of range");
 						goto abort;
 					}
-					empty != empty;
+
 				} else {
 					printErr("-C must be chained with -c and the argument "
 					"cannot be empty. \nCommand");
 					goto abort;
 				}
+				pids_flag = true;
 				break;
+
 			case 'I':
 				debug_print("case io weight\n");
 				empty = (bool) !strcmp(optarg, "");
+
 				if (cgroup_flag && !empty)
 				{
 					max_weight = strtol(optarg, NULL, 10);
+					empty != empty;
+
 					if (max_weight < MIN_WEIGHT || max_weight > MAX_WEIGHT) {
 						printErr("io_weight value out of range");
 						goto abort;
 					}
-					empty != empty;
+
 				} else {
 					printErr("-C must be chained with -c and the argument "
 					"cannot be empty. \nCommand");
 					goto abort;
 				}
+				weight_flag = true;
 				break;
-			/* TODO:
-			case 'n':
-				debug_print("case network");
-				break;
-			case 'u':
-				debug_print("case user");
-				break;*/
 
-				// add here other cases
+				// add other cases here
 
 			default:
 				goto usage;	
 		}
 	}
 
-	get_child_entrypoint(optind, argv, argc, child_entrypoint);
-	debug_print("child entrypoint = ");
-	debug_print(child_entrypoint);
-	debug_print("\n");
+	get_child_entrypoint(optind, argv, argc, &child_entrypoint);
 
+	init_resources(cgroup_flag, pids_flag, memory_flag, weight_flag,
+			cpu_shares_flag, max_pids, memory_limit, max_weight,
+			cpu_shares, &cgroup_arguments);
 
-	// TODO: remember to pass memorylimit, cpushares etc.. as struct is better
-	if (runall)
-		runc(argc, argv);
-	else
-	{
+	runc_arguments = (struct runc_args *) malloc( sizeof(struct runc_args) );
+	runc_arguments->child_entrypoint = child_entrypoint;
+	runc_arguments->child_entrypoint_size = (size_t) argc - optind;
+	runc_arguments->resources = cgroup_arguments;
+
+	if (runall) {
+		runc(runc_arguments);
+	} else {
 		fprintf(stderr, "-a flag must be used in order to create "
 		"your new container");
 		goto abort;
 	}
 		
-
+	// Now it's time to free them. Bye!
+	free(child_entrypoint);
+	free(runc_arguments->resources->max_pids);
+	free(runc_arguments->resources->io_weight);
+	free(runc_arguments->resources->cpu_shares);
+	free(runc_arguments->resources->memory_limit);
+	free(runc_arguments->resources);
+	
+	for (int i = 0; i < argc - optind; ++i) {
+		free(child_entrypoint[i]);
+	}
+	
 	exit(EXIT_SUCCESS);
+
 
 usage:
 	printf("Usage: MyDocker <options> <entrypoint>\n");

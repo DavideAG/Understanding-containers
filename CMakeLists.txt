@@ -17,7 +17,7 @@ AUX_SOURCE_DIRECTORY(./src/namespaces/user/ MyDocker_SRC_namespaces_user)
 AUX_SOURCE_DIRECTORY(./src/namespaces/network/ MyDocker_SRC_namespaces_network)
 
 # Set cgroup namespaces source directory
-AUX_SOURCE_DIRECTORY(./src/namespaces/cgroup MyDocker_SRC_namespaces_cgroup)
+AUX_SOURCE_DIRECTORY(./src/namespaces/cgroup/ MyDocker_SRC_namespaces_cgroup)
 
 # Create executable
 ADD_EXECUTABLE(
@@ -27,6 +27,7 @@ ADD_EXECUTABLE(
 	${MyDocker_SRC_namespaces_mount}
 	${MyDocker_SRC_namespaces_user}
 	${MyDocker_SRC_namespaces_network}
+	${MyDocker_SRC_namespaces_cgroup}
 )
 SET_TARGET_PROPERTIES(MyDocker PROPERTIES COMPILE_FLAGS "-lcap")
 
