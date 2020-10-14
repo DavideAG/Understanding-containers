@@ -178,7 +178,7 @@ usage:
     printf("\n");
     printf("<options> should be:\n");
     printf("\t- a\trun all namespaces\n");
-	printf("\t- c\tcgrops used to limit resources.\n\t\tThis command must can "
+	printf("\t- c\tcgrops used to limit resources.\n\t\tThis command must "
 	"be chained with at least one of:\n");
 	printf("\t\t- M <memory_limit> \t\t[1-4294967296]\t"
 	"default: 1073741824 (1GB)\n");
