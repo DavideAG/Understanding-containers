@@ -11,6 +11,7 @@
 int main(int argc, char *argv[])
 {
 	int option = 0;
+	int isPrivileged=0;
 	char **child_entrypoint;
 	bool empty = false;
 	bool runall = false;
@@ -26,7 +27,7 @@ int main(int argc, char *argv[])
 	struct runc_args *runc_arguments = NULL;
 	struct cgroup_args *cgroup_arguments = NULL;
 
-	while ((option = getopt(argc, argv, "hacM:C:P:I:")) != -1) {
+	while ((option = getopt(argc, argv, "hacUM:C:P:I:")) != -1) {
 		switch(option) {
 			case 'h':
 				debug_print("case help\n");
@@ -36,6 +37,9 @@ int main(int argc, char *argv[])
 				debug_print("case all\n");
 				runall = true;
 				break;
+
+			case 'U':
+				isPrivileged = 1;
 
 			case 'c':
 				debug_print("case cgroup\n");
@@ -149,6 +153,9 @@ int main(int argc, char *argv[])
 	runc_arguments->child_entrypoint = child_entrypoint;
 	runc_arguments->child_entrypoint_size = (size_t) argc - optind;
 	runc_arguments->resources = cgroup_arguments;
+
+	//privileged or unprivileged container.
+	runc_arguments->privileged = isPrivileged;
 
 	if (runall) {
 		runc(runc_arguments);
