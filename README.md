@@ -76,7 +76,7 @@ Usage: sudo ./MyDocker <options> <entrypoint>
 	- c	cgrops used to limit resources.
 		This command must can be chained with at least one of:
 		- M <memory_limit> 				[1-4294967296]	default: 1073741824 (1GB)
-		- C <percentage_of_cpu_shares> 	[1-100]			default: 25
+		- C <percentage_of_cpu_shares> 			[1-100]			default: 25
 		- P <max_pids> 					[10-32768]		default: 64
 		- I <io_weighht> 				[10-1000]		default: 10
 ```
