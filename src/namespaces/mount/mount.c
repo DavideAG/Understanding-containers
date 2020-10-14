@@ -34,7 +34,7 @@ pivot_root(const char *new_root, const char *put_old)
 }
 
 //SEE func (l *linuxStandardInit) Init() on runc/libcontainer for clarification.
-void mount_fs(){
+void perform_pivot_root(){
  
  // Be sure umount events are not propagated to the host.
  // TODO Check why this is done.
@@ -119,6 +119,20 @@ void mount_fs(){
   if(mount("", ".", "", MS_SLAVE|MS_REC, "")==-1)
     printErr("mount oldroot as slave");
 
+
+  // Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd.
+  if(umount2(".", MNT_DETACH)==-1)
+    printErr("unmount oldroot");
+
+  close(newroot);
+  close(oldroot);
+
+  // Switch back to our shiny new root.
+  chdir("/");
+
+}
+
+void prepare_rootfs(){
   /* Set up the proc VFS */
   if(!mount_proc()){
 	  fprintf(stderr,"=> procfs mount done.\n");
@@ -165,6 +179,7 @@ void mount_fs(){
 	  exit(EXIT_FAILURE);
   } 
 
+<<<<<<< HEAD
   // Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd.
   if(umount2(".", MNT_DETACH)==-1)
     printErr("unmount oldroot");
@@ -178,14 +193,16 @@ void mount_fs(){
 /*
   if(!create_dev_null()){
 	  fprintf(stderr,"=> /dev/null device done.\n");
+=======
+  if(!create_devices()){
+	  fprintf(stderr,"=> devices creation done.\n");
+>>>>>>> origin/gab
   }else{
-	  fprintf(stderr,"=> /dev/null device failed.\n");
+	  fprintf(stderr,"=> devices creation failed.\n");
 	  exit(EXIT_FAILURE);
   }
-*/
 
 }
-
 
 int mount_proc() {
     /*
@@ -314,15 +331,43 @@ int mount_dev_mqueue(){
 	return 0;
 }
 
-int create_dev_null(){
-/* One notable restriction is the inability to use the mknod command. 
- * Permission is denied for device creation within the container when 
- * run by the root user.
- */	
+int create_devices(){
+        
+	/* One notable restriction is the inability to use the mknod command. 
+         * Permission is denied for device creation within the container when 
+         * run by the root user.
+         */
+
 	unsigned long mknodflags = S_IFCHR | 0666 ;
 		
- 	if(mknod("/dev/null",mknodflags, 0) == -1)
+ 	if(mknod("/dev/null",mknodflags, 0) == -1){
+		fprintf(stderr,"=> /dev/null failed.\n");
 		return -1;
+	}
+	if(mknod("/dev/zero",mknodflags, 0) == -1){
+		fprintf(stderr,"=> /dev/zero failed.\n");
+		return -1;
+	}
+
+	if(mknod("/dev/full",mknodflags, 0) == -1){
+		fprintf(stderr,"=> /dev/full failed.\n");
+		return -1;
+	}
+	if(mknod("/dev/tty",mknodflags, 0) == -1){
+		fprintf(stderr,"=> /dev/tty failed.\n");
+		return -1;
+	}
+
+	if(mknod("/dev/random",mknodflags, 0) == -1){
+		fprintf(stderr,"=> /dev/random failed.\n");
+		return -1;
+	}
+
+	if(mknod("/dev/urandom",mknodflags, 0) == -1){
+		fprintf(stderr,"=> /dev/urandom failed.\n");
+		return -1;
+	}
+
 
 	return 0;
 

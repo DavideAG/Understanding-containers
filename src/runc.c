@@ -27,6 +27,7 @@
 int child_fn(void *args_par)
 {
     char ch;
+<<<<<<< HEAD
     struct clone_args *args = (struct clone_args *) args_par;
 
     /* Wait until the parent has updated the UID and GID mappings.
@@ -40,21 +41,58 @@ int child_fn(void *args_par)
         fprintf(stderr, "Failure in child: read from pipe returned != 0\n");
         goto abort;
     }
-
-    close(args->pipe_fd[0]);
-
-    /* UID 0 maps to UID 1000 outside. Ensure that the exec process
-     * will run as UID 0 in order to drop its privileges. */
-    if (setresgid(0,0,0) == -1)
-	    printErr("Failed to setgid.\n");
-    if (setresuid(0,0,0) == -1)
-	    printErr("Failed to setuid.\n");
-
+=======
+    
     /* setting new hostname */
     set_container_hostname();
 
     /* mounting the new container file system */
-    mount_fs();
+    perform_pivot_root();
+>>>>>>> origin/gab
+
+    prepare_rootfs();
+
+    if(args->hasUserNs){
+
+<<<<<<< HEAD
+    /* setting new hostname */
+    set_container_hostname();
+=======
+	    /* We are the producer*/
+	    close(args->sync_userns_fd[0]);
+
+	    fprintf(stderr,"=> Creating new user namespace ...");
+
+	    if(unshare(CLONE_NEWUSER) == -1){
+		    fprintf(stderr,"=> CLONE_NEWUSER failed.\n");
+		    goto abort;
+	    }else
+		    fprintf(stderr,"done.\n");
+
+	    /* Notify parent that user ns created */
+	    close(args->sync_userns_fd[1]);
+
+	    /* We are the consumer*/
+	    close(args->sync_uid_gid_map_fd[1]);
+
+	    /* We read EOF when the child close the its write end of the tip. */
+	    if (read(args->sync_uid_gid_map_fd[0], &ch, 1) != 0){
+		    fprintf(stderr, "Failure in child: read from pipe returned != 0\n");
+		    exit(EXIT_FAILURE);
+	    }
+
+            /* UID 0 maps to UID 1000 outside. Ensure that the exec process
+             * will run as UID 0 in order to drop its privileges. */
+    	   if (setresgid(0,0,0) == -1)
+		    printErr("Failed to setgid.\n");
+	   if (setresuid(0,0,0) == -1)
+		    printErr("Failed to setuid.\n");
+
+	    fprintf(stderr,"=> setuid and seguid done.\n");
+
+    }
+>>>>>>> origin/gab
+
 
     /* apply resource limitations */
     if (args->resources != NULL) {
@@ -63,9 +101,9 @@ int child_fn(void *args_par)
  
    /* The root user inside the container must have less privileges than
     * the real host root, so drop some capablities. */
-    drop_caps();
+    //drop_caps();
 
-    sys_filter();
+    //sys_filter();
       
     if (execvp(args->command[0], args->command) != 0)
         printErr("command exec failed");
@@ -107,7 +145,7 @@ void runc(struct runc_args *runc_arguments)
         its capabilities if it performed an execve() with nonzero 
         user IDs (see the capabilities(7) man page for details of the 
         transformation of a process's capabilities during execve()). */
-    if (pipe(args.pipe_fd) == -1) 
+    if (pipe(args.sync_userns_fd) == -1 || pipe(args.sync_uid_gid_map_fd) == -1) 
         printErr("pipe");
 
     /* 
@@ -140,15 +178,17 @@ void runc(struct runc_args *runc_arguments)
                 CLONE_NEWUTS 	|
                 CLONE_NEWIPC 	|
                 CLONE_NEWPID 	|
-                CLONE_NEWNET 	|
-                CLONE_NEWUSER;
-        /*TODO: CLONE_NEWTIME */
+                CLONE_NEWNET
+		;
     
     /* add CLONE_NEWGROUP if required */
     if (runc_arguments->resources != NULL) {
         clone_flags |= CLONE_NEWCGROUP;
         args.resources = runc_arguments->resources;
     }
+
+    /* Create a privileged container or not. */
+    args.hasUserNs = runc_arguments->privileged; 
 
     child_pid = clone(child_fn, child_stack + STACK_SIZE,
             clone_flags | SIGCHLD, &args);
@@ -174,12 +214,33 @@ void runc(struct runc_args *runc_arguments)
      *    more than once to a uid_map file in a user namespace fails with the
      *    error EPERM. Similar rules apply for gid_map files.
      */
-    map_uid_gid(child_pid); 
+
+
+    if(args.hasUserNs){
+	
+	    char ch;
+
+	    /* We are the consumer so close the write end of the pipe. */
+    	    close(args.sync_userns_fd[1]);	
+
+	    /* We read EOF when the parent close the its write end of the tip. */
+	    if (read(args.sync_userns_fd[0], &ch, 1) != 0){
+		    fprintf(stderr, "Failure in child: read from pipe returned != 0\n");
+		    exit(EXIT_FAILURE);
+	    }
+
+	    /* We are the producer*/	
+	    close(args.sync_uid_gid_map_fd[0]);
+	    
+	    map_uid_gid(child_pid); 
+
+	    fprintf(stderr,"=> uid and gid mapping done.\n");
+
+	    /* Notify child that the mapping is done. */
+	    close(args.sync_uid_gid_map_fd[1]);
+    }
  
-    /* Close the write end of the pipe, to signal to the child that we
-     * have updated the UID/GID maps and that we updated the network
-     * configuration */
-    close(args.pipe_fd[1]);
+    
 
     if (waitpid(child_pid, NULL, 0) == -1)
         printErr("waitpid");
