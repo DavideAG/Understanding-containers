@@ -45,60 +45,6 @@ struct cgrp_control {
 	struct cgrp_setting **settings;
 };
 
-/*
-struct cgrp_control *cgrps[] = {
-	& (struct cgrp_control) {
-		.control = "memory",
-		.settings = (struct cgrp_setting *[]) {
-			& (struct cgrp_setting) {
-				.name = "memory.limit_in_bytes",
-				.value = MEMORY
-			},
-			& (struct cgrp_setting) {
-				.name = "memory.kmem.limit_in_bytes",
-				.value = MEMORY
-			},
-			&add_to_tasks,
-			NULL
-		}
-	},
-	& (struct cgrp_control) {
-		.control = "cpu",
-		.settings = (struct cgrp_setting *[]) {
-			& (struct cgrp_setting) {
-				.name = "cpu.shares",
-				.value = SHARES
-			},
-			&add_to_tasks,
-			NULL
-		}
-	},
-	& (struct cgrp_control) {
-		.control = "pids",
-		.settings = (struct cgrp_setting *[]) {
-			& (struct cgrp_setting) {
-				.name = "pids.max",
-				.value = PIDS
-			},
-			&add_to_tasks,
-			NULL
-		}
-	},
-	& (struct cgrp_control) {
-		.control = "blkio",
-		.settings = (struct cgrp_setting *[]) {
-			& (struct cgrp_setting) {
-				.name = "blkio.weight",
-				.value = PIDS
-			},
-			&add_to_tasks,
-			NULL
-		}
-	},
-	NULL
-};
-*/
-
 /* initialize the struct cgroup_args */
 void init_resources(bool cgroup_flag, bool pids_flag, bool memory_flag,
 			bool weight_flag, bool cpu_shares_flag,

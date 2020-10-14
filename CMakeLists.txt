@@ -35,9 +35,10 @@ if(NOT SECCOMP)
   message(FATAL_ERROR "Couldn't find linux/seccomp.h. You may need to upgrade your kernel.")
 endif()
 
+include_directories($SECCOMP)
+
 SET_TARGET_PROPERTIES(MyDocker PROPERTIES COMPILE_FLAGS "-lcap")
 SET_TARGET_PROPERTIES(MyDocker PROPERTIES COMPILE_FLAGS "-lseccomp")
 
 target_link_libraries(MyDocker PRIVATE cap)
-
-
+target_link_libraries(MyDocker PRIVATE seccomp)
