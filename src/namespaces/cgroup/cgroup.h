@@ -42,6 +42,7 @@ struct cgrp_setting {
  * the maximum userspace memory that can be allocated by the process. */
 struct cgrp_control {
 	char *control;
+	size_t n_settings;
 	struct cgrp_setting **settings;
 };
 

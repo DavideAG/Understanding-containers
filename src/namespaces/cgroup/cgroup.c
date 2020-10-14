@@ -73,6 +73,7 @@ struct cgrp_control *alloc_ctr_memory(char *memory_limit)
         struct cgrp_setting *memory_ker = NULL;
         struct cgrp_setting *memory_usr = NULL;
         struct cgrp_control *ctr_memory = NULL;
+        size_t n_settings = 0;
 
         /* creating the two settings structures */
         memory_usr =
@@ -84,6 +85,7 @@ struct cgrp_control *alloc_ctr_memory(char *memory_limit)
 
         memory_usr->name = strdup("memory.limit_in_bytes");
         memory_usr->value = memory_limit;
+        ++n_settings;
 
         memory_ker =
             (struct cgrp_setting *) malloc(sizeof(struct cgrp_setting));
@@ -94,6 +96,7 @@ struct cgrp_control *alloc_ctr_memory(char *memory_limit)
 
         memory_ker->name = strdup("memory.kmem.limit_in_bytes");
         memory_ker->value = memory_limit;
+        ++n_settings;
 
         /* now the controller */
         ctr_memory = (struct cgrp_control *) malloc(sizeof(struct cgrp_control));
@@ -118,6 +121,7 @@ struct cgrp_control *alloc_ctr_memory(char *memory_limit)
         /* pushing the two setting structures */
         ctr_memory->settings[0] = memory_usr;
         ctr_memory->settings[1] = memory_ker;
+        ctr_memory->n_settings = n_settings;
 
         return ctr_memory;
 }
@@ -126,6 +130,7 @@ struct cgrp_control *alloc_ctr_cpu(char *cpu_shares)
 {
     struct cgrp_control *ctr_cpu = NULL;
     struct cgrp_setting *cpu = NULL;
+    size_t n_settings = 0;
 
     cpu = (struct cgrp_setting *) malloc(sizeof(struct cgrp_setting));
 
@@ -135,6 +140,7 @@ struct cgrp_control *alloc_ctr_cpu(char *cpu_shares)
 
     cpu->name = strdup("cpu.shares");
     cpu->value = cpu_shares;
+    ++n_settings;
 
     ctr_cpu = (struct cgrp_control *) malloc(sizeof(struct cgrp_control));
 
@@ -151,6 +157,7 @@ struct cgrp_control *alloc_ctr_cpu(char *cpu_shares)
 
     ctr_cpu->control = strdup("cpu");
     ctr_cpu->settings[0] = cpu;
+    ctr_cpu->n_settings = n_settings;
 
     return ctr_cpu;
 }
@@ -159,6 +166,7 @@ struct cgrp_control *alloc_ctr_pids(char *max_pids)
 {
     struct cgrp_control *ctr_pids = NULL;
     struct cgrp_setting *pids = NULL;
+    size_t n_settings = 0;
 
     pids = (struct cgrp_setting *) malloc(sizeof(struct cgrp_setting));
 
@@ -168,6 +176,7 @@ struct cgrp_control *alloc_ctr_pids(char *max_pids)
 
     pids->name = strdup("pids.max");
     pids->value = max_pids;
+    ++n_settings;
 
     ctr_pids = (struct cgrp_control *) malloc(sizeof(struct cgrp_control));
 
@@ -184,6 +193,7 @@ struct cgrp_control *alloc_ctr_pids(char *max_pids)
 
     ctr_pids->control = strdup("pids");
     ctr_pids->settings[0] = pids;
+    ctr_pids->n_settings = n_settings;
 
     return ctr_pids;
 }
@@ -192,6 +202,7 @@ struct cgrp_control *alloc_ctr_blkio(char *io_weight)
 {
     struct cgrp_control *ctr_blkio = NULL;
     struct cgrp_setting *blkio = NULL;
+    size_t n_settings = 0;
 
     blkio = (struct cgrp_setting *) malloc(sizeof(struct cgrp_setting));
 
@@ -201,6 +212,7 @@ struct cgrp_control *alloc_ctr_blkio(char *io_weight)
 
     blkio->name = strdup("blkio.weight");
     blkio->value = io_weight;
+    ++n_settings;
 
     ctr_blkio = (struct cgrp_control *) malloc(sizeof(struct cgrp_control));
 
@@ -217,13 +229,16 @@ struct cgrp_control *alloc_ctr_blkio(char *io_weight)
 
     ctr_blkio->control = strdup("blkio");
     ctr_blkio->settings[0] = blkio;
+    ctr_blkio->n_settings = n_settings;
 
     return ctr_blkio;
 }
 
 
 /* create a new cgroup controller */
-struct cgrp_control **setup_cgrp_controller(struct cgroup_args *cgroup_arguments)
+struct cgrp_control **setup_cgrp_controller(
+    struct cgroup_args *cgroup_arguments,
+    size_t *n_controller)
 {
     struct cgrp_control **controller = NULL;
     struct cgrp_control *ctr_memory = NULL;
@@ -253,28 +268,29 @@ struct cgrp_control **setup_cgrp_controller(struct cgroup_args *cgroup_arguments
     }
 
     controller = (struct cgrp_control **) 
-        malloc(n_controllers * sizeof(struct cgrp_control));
+        malloc(n_controllers * sizeof(struct cgrp_control *));
 
     if (!controller) {
         printErr("controller failed allocation");
     }
 
-    if (!ctr_memory) {
+    if (ctr_memory) {
         controller[k++] = ctr_memory;
     }
 
-    if (!ctr_cpu) {
+    if (ctr_cpu) {
         controller[k++] = ctr_cpu;
     }
 
-    if (!ctr_pids) {
+    if (ctr_pids) {
         controller[k++] = ctr_pids;
     }
 
-    if (!ctr_blkio) {
+    if (ctr_blkio) {
         controller[k++] = ctr_blkio;
     }
     
+    *n_controller = n_controllers;
     return controller;
 }
 
@@ -282,22 +298,42 @@ struct cgrp_control **setup_cgrp_controller(struct cgroup_args *cgroup_arguments
  * /sys/fs/cgroup/<cgrp_control.control>/container/ is created,
  * here a new file containing the resource limitation represented
  * by cgrp_setting is created and the associated value is written. */
-void setting_cgroups(struct cgrp_control **controller)
+void setting_cgroups(struct cgrp_control **controller, size_t n_controller)
 {
+    int i = 0, j = 0;
+    struct cgrp_control **cgrp;
+    struct cgrp_setting **setting;
     fprintf(stderr, "=> setting cgroups...");
-    for (struct cgrp_control **cgrp = controller; *cgrp; cgrp++) {
+
+    for (i = 0, cgrp = controller; i < n_controller; cgrp++, i++) {
         char dir[BUFF_LEN] = { 0 };
 
-        if (snprintf(dir, sizeof(dir), "/sys/fs/cgroup/%s/%s",
-                (*cgrp)->control, HOSTNAME) == -1) {
+        /* TODO: this part should be already present under /sys/fs/cgroup/ */
+        /*
+        fprintf(stderr, "*cgrp->control = %s\n", (*cgrp)->control);
+
+        if (snprintf(dir, sizeof(dir), "/sys/fs/cgroup/%s",
+                (*cgrp)->control) == -1) {
             printErr("snprintf at setting_cgroups");
         }
-        fprintf(stdout, "creating: %s\n", dir);
+        */
+
         if (mkdir(dir, S_IRUSR | S_IWUSR | S_IXUSR)) {
-            printErr("mkdir at setting_cgroups");
+            printErr("mkdir1 at setting_cgroups");
         }
 
-        for (struct cgrp_setting **setting = (*cgrp)->settings; *setting; setting++) {
+        if (snprintf(dir, sizeof(dir), "/sys/fs/cgroup/%s/" HOSTNAME,
+                (*cgrp)->control) == -1) {
+            printErr("snprintf at setting_cgroups");
+        }
+        
+        if (mkdir(dir, S_IRUSR | S_IWUSR | S_IXUSR)) {
+            printErr("mkdir2 at setting_cgroups");
+        }
+
+        for (j = 0, setting = (*cgrp)->settings;
+                j < (*cgrp)->n_settings;
+                setting++, j++) {
             char path[BUFF_LEN] = {0};
             int fd = 0;
             
@@ -316,7 +352,8 @@ void setting_cgroups(struct cgrp_control **controller)
             }
             printf("opened: %s\nwrote: %s\n", path, (*setting)->value);
             close(fd);
-        }
+            
+        }*/
     }
     fprintf(stderr, "done.\n");
 }
@@ -324,11 +361,12 @@ void setting_cgroups(struct cgrp_control **controller)
 void apply_cgroups(struct cgroup_args *cgroup_arguments)
 {
     struct cgrp_control **controller = NULL;
+    size_t n_controller = 0;
 
-    controller = setup_cgrp_controller(cgroup_arguments);
+    controller = setup_cgrp_controller(cgroup_arguments, &n_controller);
 
     // The hostname will be 'mydocker', actually it is static.
-    setting_cgroups(controller);
+    setting_cgroups(controller, n_controller);
 
     //TODO: remember to free the controller and related setting structure
 }
