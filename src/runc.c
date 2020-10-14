@@ -30,7 +30,9 @@ int child_fn(void *args_par)
     set_container_hostname();
 
     /* mounting the new container file system */
-    mount_fs();
+    perform_pivot_root();
+
+    prepare_rootfs();
 
     if(args->hasUserNs){
 
@@ -71,9 +73,9 @@ int child_fn(void *args_par)
 
    /* The root user inside the container must have less privileges than
     * the real host root, so drop some capablities. */
-    drop_caps();
+    //drop_caps();
 
-    sys_filter();
+    //sys_filter();
       
     if (execvp(args->command[0], args->command) != 0)
         printErr("command exec failed");
