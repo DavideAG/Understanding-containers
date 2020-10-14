@@ -51,3 +51,5 @@ int mount_dev_shm();
 int mount_dev_mqueue();
 
 int create_devices();
+
+int prepare_dev_fd();

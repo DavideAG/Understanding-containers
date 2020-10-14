@@ -67,7 +67,8 @@ int child_fn(void *args_par)
 		    printErr("Failed to setuid.\n");
 
 	    fprintf(stderr,"=> setuid and seguid done.\n");
-
+	  
+	   close(args->sync_uid_gid_map_fd[0]);
     }
 
 
@@ -117,7 +118,8 @@ void runc(struct runc_args *runc_arguments)
         its capabilities if it performed an execve() with nonzero 
         user IDs (see the capabilities(7) man page for details of the 
         transformation of a process's capabilities during execve()). */
-    if (pipe(args.sync_userns_fd) == -1 || pipe(args.sync_uid_gid_map_fd) == -1) 
+    if (runc_arguments->privileged && (pipe(args.sync_userns_fd) == -1 ||
+			   	       pipe(args.sync_uid_gid_map_fd)) == -1) 
         printErr("pipe");
 
     /* 
@@ -200,6 +202,8 @@ void runc(struct runc_args *runc_arguments)
 		    exit(EXIT_FAILURE);
 	    }
 
+	    close(args.sync_userns_fd[0]);
+
 	    /* We are the producer*/	
 	    close(args.sync_uid_gid_map_fd[0]);
 	    
@@ -209,6 +213,7 @@ void runc(struct runc_args *runc_arguments)
 
 	    /* Notify child that the mapping is done. */
 	    close(args.sync_uid_gid_map_fd[1]);
+	
     }
  
     
