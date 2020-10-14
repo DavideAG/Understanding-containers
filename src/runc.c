@@ -62,20 +62,15 @@ int child_fn(void *args_par)
 		    exit(EXIT_FAILURE);
 	    }
 
-            /* UID 0 maps to UID 1000 outside. Ensure that the exec process
-             * will run as UID 0 in order to drop its privileges. */
-    	   if (setresgid(0,0,0) == -1)
+        /* UID 0 maps to UID 1000 outside. Ensure that the exec process
+         * will run as UID 0 in order to drop its privileges. */
+        if (setresgid(0,0,0) == -1)
 		    printErr("Failed to setgid.\n");
 	   if (setresuid(0,0,0) == -1)
 		    printErr("Failed to setuid.\n");
 
 	    fprintf(stderr,"=> setuid and seguid done.\n");
 
-    }
-
-    /* apply resource limitations */
-    if (args->resources != NULL) {
-        apply_cgroups(args->resources);
     }
  
    /* The root user inside the container must have less privileges than
@@ -164,6 +159,9 @@ void runc(struct runc_args *runc_arguments)
     if (runc_arguments->resources != NULL) {
         clone_flags |= CLONE_NEWCGROUP;
         args.resources = runc_arguments->resources;
+
+        /* apply resource limitations */
+        apply_cgroups(args.resources);
     }
 
     /* Create a privileged container or not. */

@@ -294,6 +294,32 @@ struct cgrp_control **setup_cgrp_controller(
     return controller;
 }
 
+void write_writing_process_task(char dir[BUFF_LEN])
+{
+    char file_name[BUFF_LEN];
+    char *value = NULL;
+    int fd = 0;
+
+    if (snprintf(file_name, sizeof(file_name), "%s/tasks", dir) == -1) {
+        printErr("snprintf at write_writing_process_task");
+    }
+
+    if ((fd = open(file_name, O_WRONLY)) == -1) {
+        printErr("open at write_writing_process_task");
+    }
+
+    value = strdup("0");
+
+    if (write(fd, value, strlen(value)) == -1) {
+        close(fd);
+        free(value);
+        printErr("writing the cgroup tasks file");
+    }
+
+    close(fd);
+    free(value);
+}
+
 /* For each controller a new directory under
  * /sys/fs/cgroup/<cgrp_control.control>/container/ is created,
  * here a new file containing the resource limitation represented
@@ -308,27 +334,13 @@ void setting_cgroups(struct cgrp_control **controller, size_t n_controller)
     for (i = 0, cgrp = controller; i < n_controller; cgrp++, i++) {
         char dir[BUFF_LEN] = { 0 };
 
-        /* TODO: this part should be already present under /sys/fs/cgroup/ */
-        /*
-        fprintf(stderr, "*cgrp->control = %s\n", (*cgrp)->control);
-
-        if (snprintf(dir, sizeof(dir), "/sys/fs/cgroup/%s",
-                (*cgrp)->control) == -1) {
-            printErr("snprintf at setting_cgroups");
-        }
-        */
-/*
-        if (mkdir(dir, S_IRUSR | S_IWUSR | S_IXUSR)) {
-            printErr("mkdir1 at setting_cgroups");
-        }
-
         if (snprintf(dir, sizeof(dir), "/sys/fs/cgroup/%s/" HOSTNAME,
                 (*cgrp)->control) == -1) {
             printErr("snprintf at setting_cgroups");
         }
         
         if (mkdir(dir, S_IRUSR | S_IWUSR | S_IXUSR)) {
-            printErr("mkdir2 at setting_cgroups");
+            printErr("mkdir at setting_cgroups");
         }
 
         for (j = 0, setting = (*cgrp)->settings;
@@ -343,17 +355,18 @@ void setting_cgroups(struct cgrp_control **controller, size_t n_controller)
             }
 
             if ((fd = open(path, O_WRONLY)) == -1) {
-                printErr("mkdir at setting_cgroups");
+                printErr("open at setting_cgroups");
             }
 
             if (write(fd, (*setting)->value, strlen((*setting)->value)) == -1) {
                 close(fd);
                 printErr("writing the cgroup file");
             }
-            printf("opened: %s\nwrote: %s\n", path, (*setting)->value);
+            printf("\nopened: %s\nwrote: %s\n", path, (*setting)->value);
             close(fd);
-            
-        }*/
+        }
+
+        write_writing_process_task(dir);
     }
     fprintf(stderr, "done.\n");
 }
