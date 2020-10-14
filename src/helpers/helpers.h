@@ -20,7 +20,7 @@
 #define MAX_WEIGHT              1000
 #define MAX_BUF_SIZE            100
 #define MAX_CPU_SHARES          100
-#define COMAND_MAX_SIZE 200
+#define COMAND_MAX_SIZE         200
 #define MAX_MEMORY_ALLOCABLE    4294967296
 #define CPU_SHARES_CHUNK_SIZE   0x400 
 #ifndef ISOLATE_NETNS_H

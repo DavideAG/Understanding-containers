@@ -7,7 +7,9 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 #include "./seccomp_config.h"
-void sys_filter(){
+
+void sys_filter()
+{
 
 	scmp_filter_ctx ctx;
 

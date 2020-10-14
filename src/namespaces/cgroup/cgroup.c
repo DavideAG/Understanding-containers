@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include "cgroup.h"
 #include "../../helpers/helpers.h"
+#include "../../../config.h"
 
 /* initialize the struct cgroup_args */
 void init_resources(bool cgroup_flag,
@@ -278,7 +279,7 @@ struct cgrp_control **setup_cgrp_controller(struct cgroup_args *cgroup_arguments
 }
 
 /* For each controller a new directory under
- * /sys/fs/cgroup/<cgrp_control.control>/mydocker/ is created,
+ * /sys/fs/cgroup/<cgrp_control.control>/container/ is created,
  * here a new file containing the resource limitation represented
  * by cgrp_setting is created and the associated value is written. */
 void setting_cgroups(struct cgrp_control **controller)
@@ -287,11 +288,11 @@ void setting_cgroups(struct cgrp_control **controller)
     for (struct cgrp_control **cgrp = controller; *cgrp; cgrp++) {
         char dir[BUFF_LEN] = { 0 };
 
-        if (snprintf(dir, sizeof(dir), "/sys/fs/cgroup/%s/mydocker",
-                (*cgrp)->control) == -1) {
+        if (snprintf(dir, sizeof(dir), "/sys/fs/cgroup/%s/%s",
+                (*cgrp)->control, HOSTNAME) == -1) {
             printErr("snprintf at setting_cgroups");
         }
-        printf("creating: %s\n", dir);
+        fprintf(stdout, "creating: %s\n", dir);
         if (mkdir(dir, S_IRUSR | S_IWUSR | S_IXUSR)) {
             printErr("mkdir at setting_cgroups");
         }

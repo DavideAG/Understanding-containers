@@ -21,7 +21,7 @@
 #include "namespaces/cgroup/cgroup.h"
 #include "namespaces/network/network.h"
 #include "../config.h"
-#include "seccomp/seccomp_config.h"
+#include "./seccomp/seccomp_config.h"
 
 
 int child_fn(void *args_par)
