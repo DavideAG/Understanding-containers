@@ -179,24 +179,8 @@ void prepare_rootfs(){
 	  exit(EXIT_FAILURE);
   } 
 
-<<<<<<< HEAD
-  // Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd.
-  if(umount2(".", MNT_DETACH)==-1)
-    printErr("unmount oldroot");
-
-  close(newroot);
-  close(oldroot);
-
-  // Switch back to our shiny new root.
-  chdir("/");
-
-/*
-  if(!create_dev_null()){
-	  fprintf(stderr,"=> /dev/null device done.\n");
-=======
   if(!create_devices()){
 	  fprintf(stderr,"=> devices creation done.\n");
->>>>>>> origin/gab
   }else{
 	  fprintf(stderr,"=> devices creation failed.\n");
 	  exit(EXIT_FAILURE);

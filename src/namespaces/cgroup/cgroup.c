@@ -317,7 +317,7 @@ void setting_cgroups(struct cgrp_control **controller, size_t n_controller)
             printErr("snprintf at setting_cgroups");
         }
         */
-
+/*
         if (mkdir(dir, S_IRUSR | S_IWUSR | S_IXUSR)) {
             printErr("mkdir1 at setting_cgroups");
         }

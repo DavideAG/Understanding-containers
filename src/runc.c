@@ -26,38 +26,19 @@
 
 int child_fn(void *args_par)
 {
-    char ch;
-<<<<<<< HEAD
     struct clone_args *args = (struct clone_args *) args_par;
-
-    /* Wait until the parent has updated the UID and GID mappings.
-    See the comment in main(). We wait for end of file on a
-    pipe that will be closed by the parent process once it has
-    updated the mappings. */
-    close(args->pipe_fd[1]);    /* Close our descriptor for the write
-                                   end of the pipe so that we see EOF
-                                   when parent closes its descriptor. */
-    if (read(args->pipe_fd[0], &ch, 1) != 0) {
-        fprintf(stderr, "Failure in child: read from pipe returned != 0\n");
-        goto abort;
-    }
-=======
+    char ch;
     
     /* setting new hostname */
     set_container_hostname();
 
     /* mounting the new container file system */
     perform_pivot_root();
->>>>>>> origin/gab
 
     prepare_rootfs();
 
-    if(args->hasUserNs){
+    if (args->hasUserNs) {
 
-<<<<<<< HEAD
-    /* setting new hostname */
-    set_container_hostname();
-=======
 	    /* We are the producer*/
 	    close(args->sync_userns_fd[0]);
 
@@ -91,8 +72,6 @@ int child_fn(void *args_par)
 	    fprintf(stderr,"=> setuid and seguid done.\n");
 
     }
->>>>>>> origin/gab
-
 
     /* apply resource limitations */
     if (args->resources != NULL) {
@@ -273,4 +252,3 @@ void print_running_infos(struct clone_args *args)
 
     fprintf(stdout, "%s]\n", buf);
 }
-
