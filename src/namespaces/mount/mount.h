@@ -28,7 +28,28 @@
  */
 
 /* mounting the container file system -> ubuntu-fs */
-void mount_fs();
+void perform_pivot_root();
+
+void prepare_rootfs();
 
 /* /proc fs mount */
-void mount_proc();
+int mount_proc();
+
+/* /sys fs mount */
+int mount_sysfs();
+
+/* /dev mount */
+int mount_dev();
+
+/* /dev/pts mount */
+int mount_dev_pts();
+
+/* /dev/shm mount */
+int mount_dev_shm();
+
+/*/dev/mqueue mount */
+int mount_dev_mqueue();
+
+int create_devices();
+
+int prepare_dev_fd();
