@@ -33,13 +33,13 @@ void sys_filter()
 	 * - ctx : the context of the filter
 	 *
 	 * - SCMP_ACT_ERRNO(EPERM) : action field, The process will be killed by the kernel when it calls a
-         *     			     syscall that matches the filter rule.
+     *     			     syscall that matches the filter rule.
 	 *
 	 * - SCMP_SYS(syscall_name) : While it is possible to specify the syscall value directly using the
-       	 *        		      standard __NR_syscall values, in order to ensure proper operation
-         *                            across multiple architectures it is highly recommended to use the
-         *                            SCMP_SYS() macro instead.
-         *
+     *        		      standard __NR_syscall values, in order to ensure proper operation
+     *                            across multiple architectures it is highly recommended to use the
+     *                            SCMP_SYS() macro instead.
+     *
 	 * - 1 : arg_cont
 	 *
 	 * - SCMP_A1 : used to filter syscall based on its argument. A_1 means that it is referring to a specific
@@ -47,7 +47,7 @@ void sys_filter()
 	 *             referring to the mode option:
 	 *             				S_ISUID: set effective user id of the process 
 	 *             				S_ISGID: set effective group id of the process
-	*/
+	 */
 
 	//SCMP_ACT_ERRNO(EPERM) The effect of SCMP_ACT_ERRNO is to cause a Permission Denied error
 	
@@ -92,7 +92,7 @@ void sys_filter()
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(nfsservctl), 0)
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(open_by_handle_at), 0)
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(perf_event_open), 0)
-              || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 0)
+          || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(personality), 0)
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(pivot_root), 0)
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_readv), 0)
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(process_vm_writev), 0)

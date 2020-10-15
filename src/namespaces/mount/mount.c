@@ -352,7 +352,5 @@ int create_devices(){
 		return -1;
 	}
 
-
 	return 0;
-
 }

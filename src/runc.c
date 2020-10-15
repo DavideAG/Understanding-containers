@@ -75,9 +75,9 @@ int child_fn(void *args_par)
  
    /* The root user inside the container must have less privileges than
     * the real host root, so drop some capablities. */
-    //drop_caps();
+    drop_caps();
 
-    //sys_filter();
+    sys_filter();
       
     if (execvp(args->command[0], args->command) != 0)
         printErr("command exec failed");

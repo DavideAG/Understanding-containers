@@ -371,6 +371,25 @@ void setting_cgroups(struct cgrp_control **controller, size_t n_controller)
     fprintf(stderr, "done.\n");
 }
 
+/* This operation must be done
+ * in order to avoid that the containered process will use all the fd
+ * that are available for the selected user */
+void set_fd_hard_limit()
+{
+    // TODO: continue from the hard limit and include RLIMIT_NOFILE
+  	fprintf(stderr, "=> setting rlimit...");
+	if (setrlimit(RLIMIT_NOFILE,
+		      & (struct rlimit) {
+			.rlim_max = FD_COUNT,
+			.rlim_cur = FD_COUNT,
+		})) {
+		fprintf(stderr, "failed: %m\n");
+		return 1;
+	}
+	fprintf(stderr, "done.\n");
+}
+
+
 void apply_cgroups(struct cgroup_args *cgroup_arguments)
 {
     struct cgrp_control **controller = NULL;
@@ -380,6 +399,9 @@ void apply_cgroups(struct cgroup_args *cgroup_arguments)
 
     // The hostname will be 'mydocker', actually it is static.
     setting_cgroups(controller, n_controller);
+
+    /* hard limit on the number of file descriptor. */
+    set_fd_hard_limit();
 
     //TODO: remember to free the controller and related setting structure
 }
