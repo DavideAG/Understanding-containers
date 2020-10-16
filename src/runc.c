@@ -47,6 +47,8 @@ int child_fn(void *args_par)
 		    printErr("Failed to setuid.\n");
 
 	   fprintf(stderr,"=> setuid and seguid done.\n");
+
+
 	  
     }
 
@@ -154,7 +156,9 @@ void runc(struct runc_args *runc_arguments)
     if (child_pid < 0)
         printErr("Unable to create child process");
 
+    /* Set up the network for the child. */
     prepare_netns(child_pid);
+
 
     /* We force a mapping of 0 1000 1, this means that in the child namespace there will
      * be only UID 0. 
