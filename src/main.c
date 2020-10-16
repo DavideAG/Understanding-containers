@@ -11,6 +11,7 @@
 int main(int argc, char *argv[])
 {
 	int option = 0;
+	bool has_userns=false;
 	char **child_entrypoint;
 	bool empty = false;
 	bool runall = false;
@@ -26,7 +27,7 @@ int main(int argc, char *argv[])
 	struct runc_args *runc_arguments = NULL;
 	struct cgroup_args *cgroup_arguments = NULL;
 
-	while ((option = getopt(argc, argv, "hacM:C:P:I:")) != -1) {
+	while ((option = getopt(argc, argv, "hacUM:C:P:I:")) != -1) {
 		switch(option) {
 			case 'h':
 				debug_print("case help\n");
@@ -36,6 +37,9 @@ int main(int argc, char *argv[])
 				debug_print("case all\n");
 				runall = true;
 				break;
+
+			case 'U':
+				has_userns = true;
 
 			case 'c':
 				debug_print("case cgroup\n");
@@ -150,6 +154,9 @@ int main(int argc, char *argv[])
 	runc_arguments->child_entrypoint_size = (size_t) argc - optind;
 	runc_arguments->resources = cgroup_arguments;
 
+	//privileged or unprivileged container.
+	runc_arguments->has_userns = has_userns;
+
 	if (runall) {
 		runc(runc_arguments);
 	} else {
@@ -177,8 +184,9 @@ usage:
 	printf("Usage: sudo ./MyDocker <options> <entrypoint>\n");
     printf("\n");
     printf("<options> should be:\n");
-    printf("\t- a\trun all namespaces\n");
-	printf("\t- c\tcgrops used to limit resources.\n\t\tThis command must can "
+    printf("\t- a\trun all namespaces without the user namespace\n");
+	printf("\t- U\trun a user namespace using unprivileged container\n");
+	printf("\t- c\tcgrops used to limit resources.\n\t\tThis command must "
 	"be chained with at least one of:\n");
 	printf("\t\t- M <memory_limit> \t\t[1-4294967296]\t"
 	"default: 1073741824 (1GB)\n");

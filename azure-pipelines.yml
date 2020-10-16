@@ -17,6 +17,8 @@ jobs:
       - bash: |
           sudo apt install libcap-dev -y
       - bash: |
+          sudo apt install libseccomp-dev -y
+      - bash: |
           pwd
           mkdir build
           cd build

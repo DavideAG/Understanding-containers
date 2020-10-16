@@ -72,9 +72,10 @@ Here the help of the tool:
 Usage: sudo ./MyDocker <options> <entrypoint>
 
 <options> should be:
-	- a	run all namespaces
+	- a	run all namespaces without the user namespace
+	- U	run a user namespace using unprivileged container
 	- c	cgrops used to limit resources.
-		This command must can be chained with at least one of:
+		This command must be chained with at least one of:
 		- M <memory_limit> 				[1-4294967296]	default: 1073741824 (1GB)
 		- C <percentage_of_cpu_shares> 			[1-100]			default: 25
 		- P <max_pids> 					[10-32768]		default: 64
@@ -83,7 +84,7 @@ Usage: sudo ./MyDocker <options> <entrypoint>
 Feel the thrill of your new container now by running. An example of a command can be:
 
 ```bash
-~$  sudo ./MyDocker -ac -C 50 -I 20 -P 333 /bin/bash
+~$  sudo ./MyDocker -aUc -C 50 -I 20 -P 333 /bin/bash
 ```
 
 In this case the following cgroup resource limits are applied:
@@ -160,4 +161,4 @@ Please report any issues, corrections or ideas on [GitHub](https://github.com/Da
 - [A deep dive into Linux namespaces](http://ifeanyi.co/posts/linux-namespaces-part-1/#pivot-root)
 - [netsetgo](https://github.com/teddyking/netsetgo) of [Ed King](https://github.com/teddyking)
 - [ns-process](https://github.com/teddyking/ns-process) of [Ed King](https://github.com/teddyking)
-- [Linux containers in 500 lines of code](https://blog.lizzie.io/linux-containers-in-500-loc.html#org65bbba4) of [Lizzie Dixon](https://github.com/startling)
+- [Linux containers in 500 lines of code](https://blog.lizzie.io/linux-containers-in-500-loc.html) of [Lizzie Dixon](https://github.com/startling)

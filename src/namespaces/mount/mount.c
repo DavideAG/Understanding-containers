@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <sys/sysmacros.h>
 #include "mount.h"
 #include "../../helpers/helpers.h"
 #include "../../../config.h"
@@ -33,11 +34,10 @@ pivot_root(const char *new_root, const char *put_old)
     return syscall(SYS_pivot_root, new_root, put_old);
 }
 
-//SEE func (l *linuxStandardInit) Init() on runc/libcontainer for clarification.
-void mount_fs(){
+/* SEE func (l *linuxStandardInit) Init() on runc/libcontainer for clarification */
+void perform_pivot_root(int has_userns){
  
- // Be sure umount events are not propagated to the host.
- // TODO Check why this is done.
+ /* Be sure umount events are not propagated to the host. */
  if(mount("","/","", MS_SLAVE | MS_REC, "") == -1)
     printErr("mount failed");
 
@@ -58,9 +58,10 @@ void mount_fs(){
   * /proc/self/cwd being the old root. Since we can play around with the cwd
   * with pivot_root this allows us to pivot without creating directories in
   * the rootfs. Shout-outs to the LXC developers for giving us this idea.
-  * Instead of using a temporary directory for the pivot_root put-old, use "."
-  * both for new-root and old-root.  Then fchdir into the old root temporarily
-  * in order to unmount the old-root, and finallychdir back into our '/'. */
+  * Instead of using a temporary directory for the pivot_root put-old, use "." both
+  * for new-root and old-root.  Then fchdir into the old root temporarily in
+  * order to unmount the old-root, and finallychdir back into our '/'. 
+  */
 
   int oldroot = open("/",O_DIRECTORY | O_RDONLY,0);
   if(oldroot == -1)
@@ -70,71 +71,143 @@ void mount_fs(){
   if(newroot == -1)
     printErr("open newroot");
 
-  // Change to the new root so that the pivot_root actually acts on it.
+  /* Change to the new root so that the pivot_root actually acts on it. */
   if(fchdir(newroot)==-1)
     printErr("fchdir newroot");
 
   if(pivot_root(".",".")==-1)
     printErr("pivot_root");
-  //1. By this point, both the CWD and root dir of the calling process are
-  //   in newroot (and so do not keep newroot busy, and thus don't prevent
-  //   the unmount).
-  //2. After the pivot_root() operation, there are two mount points
-  //   stacked at "/": oldroot and newroot, with oldroot a child mount
-  //   stacked on top of newroot (I did some experiments to verify that this
-  //   is so, by examination of /proc/self/mountinfo).
-  //3. The umount(".") operation unmounts the topmost mount from the pair
-  //   of mounts stacked at "/".
 
-  /*
-     new_root and put_old may be the same  directory.   In  particular,
-     the following sequence allows a pivot-root operation without need‐
-     ing to create and remove a temporary directory put_old:
+  /* 1.By this point, both the CWD and root dir of the calling process are
+   *   in newroot (and so do not keep newroot busy, and thus don't prevent
+   *   the unmount).
+   * 2.After the pivot_root() operation, there are two mount points
+   *   stacked at "/": oldroot and newroot, with oldroot a child mount
+   *   stacked on top of newroot (I did some experiments to verify that this
+   *   is so, by examination of /proc/self/mountinfo).
+   * 3.The umount(".") operation unmounts the topmost mount from the pair
+   *   of mounts stacked at "/".
+   *
+   *
+   *  new_root and put_old may be the same  directory.   In  particular,
+   *  the following sequence allows a pivot-root operation without need‐
+   *  ing to create and remove a temporary directory put_old:
+   *
+   *      chdir(new_root);
+   *      pivot_root(".", ".");
+   *      umount2(".", MNT_DETACH);
+   *
+   *  This sequence succeeds because the pivot_root()  call  stacks  the
+   *  old root mount point (old_root) on top of the new root mount point
+   *  at /.  At that point, the calling  process's  root  directory  and
+   *  current  working  directory  refer  to  the  new  root mount point
+   *  (new_root).  During the subsequent umount()  call,  resolution  of
+   *  "."   starts  with  new_root  and then moves up the list of mounts
+   *  stacked at /, with the result that old_root is unmounted.
+   *
+   *
+   * Currently our "." is oldroot (according to the current kernel code).
+   * However, purely for safety, we will fchdir(oldroot) since there isn't
+   * really any guarantee from the kernel what /proc/self/cwd will be after a
+   * pivot_root(2).
+   */
 
-         chdir(new_root);
-         pivot_root(".", ".");
-         umount2(".", MNT_DETACH);
-
-     This sequence succeeds because the pivot_root()  call  stacks  the
-     old root mount point (old_root) on top of the new root mount point
-     at /.  At that point, the calling  process's  root  directory  and
-     current  working  directory  refer  to  the  new  root mount point
-     (new_root).  During the subsequent umount()  call,  resolution  of
-     "."   starts  with  new_root  and then moves up the list of mounts
-     stacked at /, with the result that old_root is unmounted.
-  */
-
-  // Currently our "." is oldroot (according to the current kernel code).
-  // However, purely for safety, we will fchdir(oldroot) since there isn't
-  // really any guarantee from the kernel what /proc/self/cwd will be after a
-  // pivot_root(2).
   if(fchdir(oldroot)==-1)
     printErr("fchdir oldroot");
 
-  // Make oldroot rslave to make sure our unmounts don't propagate to the
-  // host (and thus bork the machine). We don't use rprivate because this is
-  // known to cause issues due to races where we still have a reference to a
-  // mount while a process in the host namespace are trying to operate on
-  // something they think has no mounts (devicemapper in particular).
+  /* Make oldroot rslave to make sure our unmounts don't propagate to the
+   * host (and thus bork the machine). We don't use rprivate because this is
+   * known to cause issues due to races where we still have a reference to a
+   * mount while a process in the host namespace are trying to operate on
+   * something they think has no mounts (devicemapper in particular).
+   */
   if(mount("", ".", "", MS_SLAVE|MS_REC, "")==-1)
     printErr("mount oldroot as slave");
 
-  /* Set up the proc VFS */
-  mount_proc();
 
-  // Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd.
+  prepare_rootfs(has_userns);
+
+  /* Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd. */
   if(umount2(".", MNT_DETACH)==-1)
     printErr("unmount oldroot");
 
   close(newroot);
   close(oldroot);
 
-  // Switch back to our shiny new root.
+  /* Switch back to our shiny new root. */
   chdir("/");
 }
 
+void prepare_rootfs(int has_userns){
 
-void mount_proc() {
+  /* Set up the proc VFS */
+  if (!mount_proc()) {
+	  fprintf(stderr,"=> procfs mount done.\n");
+  } else {
+	  fprintf(stderr,"=> procfs mount failed.\n");
+	  exit(EXIT_FAILURE);
+  }
+
+  /* Set up the sysfs */
+  if (!mount_sysfs()) {
+	  fprintf(stderr,"=> sysfs mount done.\n");
+  } else {
+	  fprintf(stderr,"=> sysfs mount failed.\n");
+	  exit(EXIT_FAILURE);
+  }
+ 
+  /* Set up the /dev fs */
+  if (!mount_dev()) {
+	  fprintf(stderr,"=> /dev mount done.\n");
+  } else {
+	  fprintf(stderr,"=> /dev mount failed.\n");
+	  exit(EXIT_FAILURE);
+  }
+
+  /* Set up the /dev/pts fs */
+  if (!mount_dev_pts()) {
+	  fprintf(stderr,"=> /dev/pts mount done.\n");
+  } else {
+	  fprintf(stderr,"=> /dev/pts mount failed.\n");
+	  exit(EXIT_FAILURE);
+  } 
+
+  if (!mount_dev_shm()) {
+	  fprintf(stderr,"=> /dev/shm mount done.\n");
+  } else {
+	  fprintf(stderr,"=> /dev/shm mount failed.\n");
+	  exit(EXIT_FAILURE);
+  }
+
+  if (!mount_dev_mqueue()) {
+	  fprintf(stderr,"=> /dev/queue mount done.\n");
+  } else {
+	  fprintf(stderr,"=> /dev/queue mount failed.\n");
+	  exit(EXIT_FAILURE);
+  } 
+
+  /* Only priviliged container can create devices.
+   * TODO: how to manage unprivileged container devices? 
+   */
+  if(!has_userns){ 
+    if(!create_devices())
+		  fprintf(stderr,"=> devices creation done.\n");
+	  else{
+      fprintf(stderr,"=> devices creation failed.\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  if (!prepare_dev_fd()) {
+	  fprintf(stderr,"=> /dev/fd symlinks done.\n");
+  } else {
+	  fprintf(stderr,"=> /dev/fd symlinks failed.\n");
+	  exit(EXIT_FAILURE);
+  }
+}
+
+int mount_proc()
+{
     /*
     * When we execute `ps`, we are able to see the process IDs. It will
     * look inside the directory called `/proc` (ls /proc) to get process
@@ -178,9 +251,143 @@ void mount_proc() {
 
     unsigned long mountflags = MS_NOSUID | MS_NOEXEC | MS_NODEV;
 
-    if (mkdir("/proc", 0755) && errno != EEXIST) 
-        printErr("mkdir when mounting proc"); 
+    if (mkdir("/proc", 0755) && errno != EEXIST)
+	    return -1;
+   
+    /* The proc filesystem is not associated with a special device, and when 
+     * mounting it, an arbitrary keyword, such as proc can be used instead of
+     * a device specification. This represents the first argument (source) of
+     * mount(). */  
+    if (mount("proc", "/proc", "proc", mountflags, NULL) == -1)
+	   return -1;
     
-    if (mount("proc", "/proc", "proc", mountflags, NULL)) 
-        printErr("mount proc"); 
+    return 0; 
+}
+
+int mount_sysfs()
+{
+	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV | MS_RDONLY;
+
+	if(mkdir("/sys", 0755) && errno != EEXIST)
+		return -1;
+
+	if(mount("sysfs","/sys","sysfs",mountflags,NULL) == -1)
+		return -1;
+        
+	return 0;
+}
+
+int mount_dev()
+{
+	unsigned long mountflags = MS_NOEXEC | MS_STRICTATIME;
+
+	if(mkdir("/dev", 0755) && errno != EEXIST)
+		return -1;
+
+	if(mount("dev","/dev","tmpfs",mountflags,"mode=755,size=65536k") == -1)
+		return -1;
+        
+	return 0;
+
+}
+
+int mount_dev_pts()
+{
+	/* The shell is actually within a pty but the pty itself is outside the container,
+	 * so commands like 'tty' thinks we are not within a tty. However, if you directly 
+	 * call the isatty() function, it will return true. The solution would be to create 
+	 * the pty within the container instead of outside.
+	 */
+
+	unsigned long mountflags = MS_NOEXEC | MS_NOSUID;
+
+	if(mkdir("/dev/pts", 0755) && errno != EEXIST)
+		return -1;
+
+	//TODO: gid=5
+	if(mount("devpts","/dev/pts","devpts",mountflags,"newinstance,ptmxmode=066,mode=620") == -1)
+		return -1;
+        
+	return 0;
+}
+
+int mount_dev_shm()
+{
+	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV;
+
+	if(mkdir("/dev/shm", 0755) && errno != EEXIST)
+		return -1;
+
+	//TODO: gid=5
+	if(mount("shm","/dev/shm","tmpfs",mountflags,"mode=1777,size=65536k") == -1)
+		return -1;
+        
+	return 0;
+}
+
+int mount_dev_mqueue()
+{
+	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV;
+
+	if(mkdir("/dev/mqueue", 0755) && errno != EEXIST)
+		return -1;
+
+	if(mount("mqueue","/dev/mqueue","mqueue",mountflags,NULL) == -1)
+		return -1;
+        
+	return 0;
+}
+
+int create_devices()
+{
+	/* One notable restriction is the inability to use the mknod command. 
+   * Permission is denied for device creation within the container when 
+   * run by the root user.
+   */
+
+	unsigned long mknodflags = S_IFCHR | 0666 ;
+	
+	/* If the file type is S_IFCHR or S_IFBLK, then dev specifies the major
+   * and minor numbers of the newly created device special file
+   * (makedev(3) may be useful to build the value for dev); otherwise it
+   *  is ignored.
+	 */	
+ 	if(mknod("/dev/null", mknodflags, makedev(1,3)) == -1){
+		fprintf(stderr,"=> /dev/null failed.\n");
+		return -1;
+	}
+	if(mknod("/dev/zero", mknodflags, makedev(1,5)) == -1){
+		fprintf(stderr,"=> /dev/zero failed.\n");
+		return -1;
+	}
+
+	if(mknod("/dev/full", mknodflags, makedev(1,7)) == -1){
+		fprintf(stderr,"=> /dev/full failed.\n");
+		return -1;
+	}
+	if(mknod("/dev/tty",mknodflags, makedev(4,1)) == -1){
+		fprintf(stderr,"=> /dev/tty failed.\n");
+		return -1;
+	}
+
+	if(mknod("/dev/random",mknodflags, makedev(1,8)) == -1){
+		fprintf(stderr,"=> /dev/random failed.\n");
+		return -1;
+	}
+
+	if(mknod("/dev/urandom",mknodflags, makedev(1,9)) == -1){
+		fprintf(stderr,"=> /dev/urandom failed.\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+int prepare_dev_fd()
+{
+	//TODO: error checks.
+	symlink("/proc/self/fd","/dev/fd"); 
+	symlink("/proc/self/fd/0","/dev/stdin"); 
+	symlink("/proc/self/fd/1","/dev/stdout"); 
+	symlink("/proc/self/fd/2","/dev/stderr");		
 }

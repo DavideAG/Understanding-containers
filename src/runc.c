@@ -12,49 +12,58 @@
 #include <limits.h>
 #include <fcntl.h>
 #include <sys/mman.h>
-#include "./helpers/helpers.h"
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "runc.h"
+#include "helpers/helpers.h"
 #include "namespaces/user/user.h"
 #include "namespaces/mount/mount.h"
+#include "namespaces/cgroup/cgroup.h"
 #include "namespaces/network/network.h"
 #include "../config.h"
+#include "./seccomp/seccomp_config.h"
 
 
 int child_fn(void *args_par)
 {
     struct clone_args *args = (struct clone_args *) args_par;
     char ch;
+    
+    if (args->has_userns) {
 
-    /* Wait until the parent has updated the UID and GID mappings.
-    See the comment in main(). We wait for end of file on a
-    pipe that will be closed by the parent process once it has
-    updated the mappings. */
-    close(args->pipe_fd[1]);    /* Close our descriptor for the write
-                                   end of the pipe so that we see EOF
-                                   when parent closes its descriptor. */
-    if (read(args->pipe_fd[0], &ch, 1) != 0) {
-        fprintf(stderr, "Failure in child: read from pipe returned != 0\n");
-        goto abort;
+	    /* We are the consumer*/
+	    close(args->sync_uid_gid_map_fd[1]);
+
+	    /* We read EOF when the child close the its write end of the tip. */
+	    if (read(args->sync_uid_gid_map_fd[0], &ch, 1) != 0) {
+		    fprintf(stderr, "Failure in child: read from pipe returned != 0\n");
+		    exit(EXIT_FAILURE);
+	    }
+
+	   close(args->sync_uid_gid_map_fd[0]);
+           
+	   /* UID 0 maps to UID 1000 outside. Ensure that the exec process
+            * will run as UID 0 in order to drop its privileges. */
+    	   if (setresgid(0,0,0) == -1)
+		    printErr("Failed to setgid.\n");
+	   if (setresuid(0,0,0) == -1)
+		    printErr("Failed to setuid.\n");
+
+	   fprintf(stderr,"=> setuid and seguid done.\n");	  
     }
-
-    close(args->pipe_fd[0]);
-
-    /* here we can customize the container process */
-    fprintf(stdout, "ProcessID: %ld\n", (long) getpid());
 
     /* setting new hostname */
     set_container_hostname();
 
     /* mounting the new container file system */
-    mount_fs();
+    perform_pivot_root(args->has_userns);
 
-    /* UID 0 maps to UID 1000 outside. Ensure that the exec process
-     * will run as UID 0 in order to drop its privileges. */
-    if (setgid(0) == -1)
-        printErr("Failed to setgid: %m\n");
-    if (setuid(0) == -1)
-        printErr("Failed to setuid: %m\n");
+   /* The root user inside the container must have less privileges than
+    * the real host root, so drop some capablities. */
+    drop_caps();
 
+    sys_filter();
+      
     if (execvp(args->command[0], args->command) != 0)
         printErr("command exec failed");
 
@@ -65,6 +74,7 @@ abort:
 
 void runc(struct runc_args *runc_arguments)
 {
+
     pid_t child_pid;
     void *child_stack;
     char *uid_map = NULL;
@@ -73,6 +83,7 @@ void runc(struct runc_args *runc_arguments)
 
     args.command = runc_arguments->child_entrypoint;
     args.command_size = runc_arguments->child_entrypoint_size;
+    args.has_userns = runc_arguments->has_userns;
 
     print_running_infos(&args);
 
@@ -94,7 +105,7 @@ void runc(struct runc_args *runc_arguments)
         its capabilities if it performed an execve() with nonzero 
         user IDs (see the capabilities(7) man page for details of the 
         transformation of a process's capabilities during execve()). */
-    if (pipe(args.pipe_fd) == -1) 
+    if (runc_arguments->has_userns && (pipe(args.sync_uid_gid_map_fd) == -1)) 
         printErr("pipe");
 
     /* 
@@ -127,24 +138,38 @@ void runc(struct runc_args *runc_arguments)
                 CLONE_NEWUTS 	|
                 CLONE_NEWIPC 	|
                 CLONE_NEWPID 	|
-                CLONE_NEWNET 	|
-                CLONE_NEWUSER;
-        /*TODO: CLONE_NEWTIME */
+                CLONE_NEWNET
+		;
     
     /* add CLONE_NEWGROUP if required */
     if (runc_arguments->resources != NULL) {
         clone_flags |= CLONE_NEWCGROUP;
+        args.resources = runc_arguments->resources;
+
+        /* apply resource limitations */
+        apply_cgroups(args.resources);
     }
 
+    if (runc_arguments->has_userns)
+	    clone_flags |= CLONE_NEWUSER;
+
     child_pid = clone(child_fn, child_stack + STACK_SIZE,
-            clone_flags | SIGCHLD, &args);
+            	      clone_flags | SIGCHLD, &args);
 
-    if (child_pid < 0)
+
+    if (child_pid < 0) {
+        free_cgroup_resources();
         printErr("Unable to create child process");
+    }
+   
+    prepare_netns(child_pid);
 
-     prepare_netns(child_pid);
-      
-    /*    Update the UID and GUI maps in the child (see user.h).
+    /* We force a mapping of 0 1000 1, this means that in the child namespace there will
+     * be only UID 0. 
+     * Any call to setuid different from 0 fails because we does not specify
+     * any other UID in the child namespace.
+     * 
+     * Update the UID and GUI maps in the child (see user.h).
      *    
      * 1. The /proc/PID/uid_map file is owned by the user ID that created the
      *    namespace, and is writeable only by that user. 
@@ -154,16 +179,27 @@ void runc(struct runc_args *runc_arguments)
      *    more than once to a uid_map file in a user namespace fails with the
      *    error EPERM. Similar rules apply for gid_map files.
      */
-    map_uid_gid(child_pid); 
- 
-    /* Close the write end of the pipe, to signal to the child that we
-     * have updated the UID/GID maps and that we updated the network
-     * configuration */
-    close(args.pipe_fd[1]);
 
+
+    if (args.has_userns) {
+	    fprintf(stderr,"=> uid and gid mapping ...");
+
+	    /* We are the producer*/
+	    close(args.sync_uid_gid_map_fd[0]);
+	    
+	    map_uid_gid(child_pid); 
+
+	    fprintf(stderr," done.\n");
+
+	    /* Notify child that the mapping is done. */
+	    close(args.sync_uid_gid_map_fd[1]);	
+    }
+ 
     if (waitpid(child_pid, NULL, 0) == -1)
         printErr("waitpid");
 
+    /* removing the cgroup folder associated with the child process */
+    free_cgroup_resources();
     fprintf(stdout, "\nContainer process terminated.\n");
 }
 
