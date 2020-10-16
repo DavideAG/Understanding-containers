@@ -184,7 +184,8 @@ usage:
 	printf("Usage: sudo ./MyDocker <options> <entrypoint>\n");
     printf("\n");
     printf("<options> should be:\n");
-    printf("\t- a\trun all namespaces\n");
+    printf("\t- a\trun all namespaces without the user namespace\n");
+	printf("\t- U\trun a user namespace using unprivileged container\n");
 	printf("\t- c\tcgrops used to limit resources.\n\t\tThis command must "
 	"be chained with at least one of:\n");
 	printf("\t\t- M <memory_limit> \t\t[1-4294967296]\t"
