@@ -31,10 +31,10 @@ int child_fn(void *args_par)
     
     if (args->has_userns) {
 
-	    /* We are the consumer*/
+	    /* We are the consumer */
 	    close(args->sync_uid_gid_map_fd[1]);
 
-	    /* We read EOF when the child close the its write end of the tip. */
+	    /* We read EOF when the child close the its write end of the tip */
 	    if (read(args->sync_uid_gid_map_fd[0], &ch, 1) != 0) {
 		    fprintf(stderr, "Failure in child: read from pipe returned != 0\n");
 		    exit(EXIT_FAILURE);
@@ -43,7 +43,7 @@ int child_fn(void *args_par)
 	   close(args->sync_uid_gid_map_fd[0]);
            
 	   /* UID 0 maps to UID 1000 outside. Ensure that the exec process
-            * will run as UID 0 in order to drop its privileges. */
+            * will run as UID 0 in order to drop its privileges */
     	   if (setresgid(0,0,0) == -1)
 		    printErr("Failed to setgid.\n");
 	   if (setresuid(0,0,0) == -1)
@@ -59,7 +59,7 @@ int child_fn(void *args_par)
     perform_pivot_root(args->has_userns);
 
    /* The root user inside the container must have less privileges than
-    * the real host root, so drop some capablities. */
+    * the real host root, so drop some capablities */
     drop_caps();
 
     sys_filter();
@@ -179,7 +179,6 @@ void runc(struct runc_args *runc_arguments)
      *    more than once to a uid_map file in a user namespace fails with the
      *    error EPERM. Similar rules apply for gid_map files.
      */
-
 
     if (args.has_userns) {
 	    fprintf(stderr,"=> uid and gid mapping ...");
