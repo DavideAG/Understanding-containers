@@ -172,7 +172,7 @@ void runc(struct runc_args *runc_arguments)
 
 
     if (child_pid < 0) {
-        //free_cgroup_resources()
+        free_cgroup_resources();
         printErr("Unable to create child process");
     }
    
@@ -196,13 +196,12 @@ void runc(struct runc_args *runc_arguments)
 
 
     if(args.hasUserNs){
-	
 	    char ch;
 
-	    /* We are the consumer so close the write end of the pipe. */
-    	    close(args.sync_userns_fd[1]);	
+	    /* We are the consumer so close the write end of the pipe */
+        close(args.sync_userns_fd[1]);	
 
-	    /* We read EOF when the parent close the its write end of the tip. */
+	    /* We read EOF when the parent close the its write end of the tip */
 	    if (read(args.sync_userns_fd[0], &ch, 1) != 0){
 		    fprintf(stderr, "Failure in child: read from pipe returned != 0\n");
 		    exit(EXIT_FAILURE);
@@ -224,6 +223,8 @@ void runc(struct runc_args *runc_arguments)
     if (waitpid(child_pid, NULL, 0) == -1)
         printErr("waitpid");
 
+    /* removing the cgroup folder associated with the child process */
+    free_cgroup_resources();
     fprintf(stdout, "\nContainer process terminated.\n");
 }
 

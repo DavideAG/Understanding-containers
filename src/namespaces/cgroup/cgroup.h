@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #define BUFF_LEN	256
-#define FD_COUNT	128				 // fd hard limit value
+#define FD_COUNT	64				 // fd hard limit value
 #define MEMORY		"1073741824"     // memory limit to 1GB in userspace
 #define SHARES		"256"            // cpu shares
 #define PIDS		"64"             // max pids for the containered process
@@ -54,3 +54,6 @@ void init_resources(bool cgroup_flag, bool pids_flag, bool memory_flag,
 
 /* apply a specific resource configuration for the containered process */
 void apply_cgroups(struct cgroup_args *cgroup_arguments);
+
+/* clean and remove the cgroup folder */
+void free_cgroup_resources();

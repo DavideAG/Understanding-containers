@@ -413,8 +413,44 @@ void cleanup_controller()
 
 void free_cgroup_resources()
 {
+    int i = 0;
+    struct cgrp_control **cgrp = NULL;
 
+    fprintf(stderr, "=> cleaning cgroups...");
+	
+    for (cgrp = controller, i = 0; i < n_controller; ++i) {
+		char dir[BUFF_LEN] = {0};
+		char task[BUFF_LEN] = {0};
+		int task_fd = 0;
+
+		if (snprintf(dir, sizeof(dir), "/sys/fs/cgroup/%s/" HOSTNAME,
+			    cgrp[i]->control) == -1
+		    || snprintf(task, sizeof(task), "/sys/fs/cgroup/%s/tasks",
+				cgrp[i]->control) == -1) {
+			printErr("snprintf - free_cgroup_resources");
+		}
+
+		if ((task_fd = open(task, O_WRONLY)) == -1) {
+			printErr("open - free_cgroup_resources");
+		}
+
+        /* first we have to clean all pids into the cgroup namespace */
+		if (write(task_fd, "0", 2) == -1) {
+			close(task_fd);
+            printErr("writing to task in free_cgroup_resources");
+		}
+		
+        close(task_fd);
+
+        /* now we can remove the cgroup folder */
+		if (rmdir(dir)) {
+			printErr("rmdir in free_cgroup_resources");
+		}
+	}
+
+    /* free the allocated memory */
     cleanup_controller();
+	fprintf(stderr, "done.\n");
 }
 
 void apply_cgroups(struct cgroup_args *cgroup_arguments)
@@ -425,5 +461,5 @@ void apply_cgroups(struct cgroup_args *cgroup_arguments)
     setting_cgroups();
 
     /* hard limit on the number of file descriptor. */
-    set_fd_hard_limit();
+    //set_fd_hard_limit();
 }
