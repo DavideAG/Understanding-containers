@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #define BUFF_LEN	256
-#define FD_COUNT	64				 // fd hard limit value
+#define FD_COUNT	128				 // fd hard limit value
 #define MEMORY		"1073741824"     // memory limit to 1GB in userspace
 #define SHARES		"256"            // cpu shares
 #define PIDS		"64"             // max pids for the containered process

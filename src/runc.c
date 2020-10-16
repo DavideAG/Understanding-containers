@@ -171,9 +171,11 @@ void runc(struct runc_args *runc_arguments)
             clone_flags | SIGCHLD, &args);
 
 
-    if (child_pid < 0)
+    if (child_pid < 0) {
+        //free_cgroup_resources()
         printErr("Unable to create child process");
-
+    }
+   
     prepare_netns(child_pid);
 
     /* We force a mapping of 0 1000 1, this means that in the child namespace there will

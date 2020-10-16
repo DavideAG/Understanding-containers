@@ -1,9 +1,13 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/resource.h>
 #include "cgroup.h"
 #include "../../helpers/helpers.h"
 #include "../../../config.h"
+
+struct cgrp_control **controller = NULL;	/* cgroup controller array */
+size_t n_controller = 0;					/* size of the controller array */
 
 /* initialize the struct cgroup_args */
 void init_resources(bool cgroup_flag,
@@ -240,7 +244,7 @@ struct cgrp_control **setup_cgrp_controller(
     struct cgroup_args *cgroup_arguments,
     size_t *n_controller)
 {
-    struct cgrp_control **controller = NULL;
+    struct cgrp_control **controller_l = NULL;
     struct cgrp_control *ctr_memory = NULL;
     struct cgrp_control *ctr_blkio = NULL;
     struct cgrp_control *ctr_pids = NULL;
@@ -267,31 +271,31 @@ struct cgrp_control **setup_cgrp_controller(
         ctr_blkio = alloc_ctr_blkio(cgroup_arguments->io_weight);
     }
 
-    controller = (struct cgrp_control **) 
+    controller_l = (struct cgrp_control **) 
         malloc(n_controllers * sizeof(struct cgrp_control *));
 
-    if (!controller) {
+    if (!controller_l) {
         printErr("controller failed allocation");
     }
 
     if (ctr_memory) {
-        controller[k++] = ctr_memory;
+        controller_l[k++] = ctr_memory;
     }
 
     if (ctr_cpu) {
-        controller[k++] = ctr_cpu;
+        controller_l[k++] = ctr_cpu;
     }
 
     if (ctr_pids) {
-        controller[k++] = ctr_pids;
+        controller_l[k++] = ctr_pids;
     }
 
     if (ctr_blkio) {
-        controller[k++] = ctr_blkio;
+        controller_l[k++] = ctr_blkio;
     }
     
     *n_controller = n_controllers;
-    return controller;
+    return controller_l;
 }
 
 void write_writing_process_task(char dir[BUFF_LEN])
@@ -324,7 +328,7 @@ void write_writing_process_task(char dir[BUFF_LEN])
  * /sys/fs/cgroup/<cgrp_control.control>/container/ is created,
  * here a new file containing the resource limitation represented
  * by cgrp_setting is created and the associated value is written. */
-void setting_cgroups(struct cgrp_control **controller, size_t n_controller)
+void setting_cgroups()
 {
     int i = 0, j = 0;
     struct cgrp_control **cgrp;
@@ -376,32 +380,50 @@ void setting_cgroups(struct cgrp_control **controller, size_t n_controller)
  * that are available for the selected user */
 void set_fd_hard_limit()
 {
-    // TODO: continue from the hard limit and include RLIMIT_NOFILE
-  	fprintf(stderr, "=> setting rlimit...");
-	if (setrlimit(RLIMIT_NOFILE,
-		      & (struct rlimit) {
-			.rlim_max = FD_COUNT,
-			.rlim_cur = FD_COUNT,
-		})) {
-		fprintf(stderr, "failed: %m\n");
-		return 1;
+    struct rlimit resource_limit;
+    resource_limit.rlim_max = FD_COUNT;
+    resource_limit.rlim_max = FD_COUNT;
+
+    fprintf(stderr, "=> setting rlimit...");
+
+	if (setrlimit(RLIMIT_NOFILE, &resource_limit)) {
+        printErr("setrlimit");
 	}
+
 	fprintf(stderr, "done.\n");
 }
 
+/* now we can free the settings associated with each controller
+ * and the controller array associated memory */
+void cleanup_controller()
+{
+    int i = 0;
+    int j = 0;
+    
+    for (i = 0; i < n_controller; ++i) {
+        free(controller[i]->control);
+        for (j = 0; j < controller[i]->n_settings; ++j) {
+            free(controller[i]->settings[j]->name);
+            free(controller[i]->settings[j]->value);
+        }
+        free(controller[i]->settings);
+    }
+    free(controller);
+}
+
+void free_cgroup_resources()
+{
+
+    cleanup_controller();
+}
 
 void apply_cgroups(struct cgroup_args *cgroup_arguments)
 {
-    struct cgrp_control **controller = NULL;
-    size_t n_controller = 0;
-
     controller = setup_cgrp_controller(cgroup_arguments, &n_controller);
 
-    // The hostname will be 'mydocker', actually it is static.
-    setting_cgroups(controller, n_controller);
+    /* The hostname will be 'mydocker', actually it is static */
+    setting_cgroups();
 
     /* hard limit on the number of file descriptor. */
     set_fd_hard_limit();
-
-    //TODO: remember to free the controller and related setting structure
 }
