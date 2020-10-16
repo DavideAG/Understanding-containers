@@ -11,7 +11,7 @@
 int main(int argc, char *argv[])
 {
 	int option = 0;
-	int isPrivileged=0;
+	bool has_userns=false;
 	char **child_entrypoint;
 	bool empty = false;
 	bool runall = false;
@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 				break;
 
 			case 'U':
-				isPrivileged = 1;
+				has_userns = true;
 
 			case 'c':
 				debug_print("case cgroup\n");
@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
 	runc_arguments->resources = cgroup_arguments;
 
 	//privileged or unprivileged container.
-	runc_arguments->privileged = isPrivileged;
+	runc_arguments->has_userns = has_userns;
 
 	if (runall) {
 		runc(runc_arguments);

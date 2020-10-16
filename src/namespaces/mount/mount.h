@@ -28,9 +28,9 @@
  */
 
 /* mounting the container file system -> ubuntu-fs */
-void perform_pivot_root();
+void perform_pivot_root(int has_userns);
 
-void prepare_rootfs();
+void prepare_rootfs(int has_userns);
 
 /* /proc fs mount */
 int mount_proc();
@@ -51,3 +51,5 @@ int mount_dev_shm();
 int mount_dev_mqueue();
 
 int create_devices();
+
+int prepare_dev_fd();
