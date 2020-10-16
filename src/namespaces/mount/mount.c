@@ -35,7 +35,7 @@ pivot_root(const char *new_root, const char *put_old)
 }
 
 /* SEE func (l *linuxStandardInit) Init() on runc/libcontainer for clarification. */
-void perform_pivot_root(){
+void perform_pivot_root(int has_userns){
  
  /* Be sure umount events are not propagated to the host. */
  if(mount("","/","", MS_SLAVE | MS_REC, "") == -1)
@@ -125,6 +125,8 @@ void perform_pivot_root(){
     printErr("mount oldroot as slave");
 
 
+  prepare_rootfs(has_userns);
+
   /* Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd. */
   if(umount2(".", MNT_DETACH)==-1)
     printErr("unmount oldroot");
@@ -137,7 +139,7 @@ void perform_pivot_root(){
 
 }
 
-void prepare_rootfs(){
+void prepare_rootfs(int has_userns){
 
   /* Set up the proc VFS */
   if(!mount_proc()){
@@ -185,11 +187,17 @@ void prepare_rootfs(){
 	  exit(EXIT_FAILURE);
   } 
 
-  if(!create_devices()){
-	  fprintf(stderr,"=> devices creation done.\n");
-  }else{
-	  fprintf(stderr,"=> devices creation failed.\n");
-	  exit(EXIT_FAILURE);
+  /* Only priviliged container can create devices.
+   * TODO: how to manage unprivileged container devices? 
+   */
+  if(!has_userns){ 
+	  if(!create_devices())
+		  fprintf(stderr,"=> devices creation done.\n");
+	  else{
+	          fprintf(stderr,"=> devices creation failed.\n");
+	          exit(EXIT_FAILURE);
+  }
+
   }
 
   if(!prepare_dev_fd()){
