@@ -167,11 +167,13 @@ int main(int argc, char *argv[])
 	}
 		
 	// Now it's time to free them. Bye!
-	free(runc_arguments->resources->max_pids);
-	free(runc_arguments->resources->io_weight);
-	free(runc_arguments->resources->cpu_shares);
-	free(runc_arguments->resources->memory_limit);
-	free(runc_arguments->resources);
+	if (runc_arguments->resources) {
+		free(runc_arguments->resources->max_pids);
+		free(runc_arguments->resources->io_weight);
+		free(runc_arguments->resources->cpu_shares);
+		free(runc_arguments->resources->memory_limit);
+		free(runc_arguments->resources);
+	}
 	
 	for (int i = 0; i < argc - optind; ++i) {
 		free(child_entrypoint[i]);
