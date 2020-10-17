@@ -141,7 +141,6 @@ void perform_pivot_root(int has_userns){
    * but if we detach the old root we lost them, being not able to mount
    * anything.
    */
-  //prepare_rootfs(has_userns);
 
   /* Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd.
    * Here we lost all the mounts point that we received from our parent when
@@ -235,21 +234,22 @@ void prepare_rootfs(int has_userns){
 	  *   You can set it up that way yourself by becoming root on the host, mknod'ing
 	  *   the device in the container's /dev, and chowning it to your container root uid.
 	  *   ==> https://lxc-users.linuxcontainers.narkive.com/5MX4xx6N/
-	  *   	 dev-random-problem-with-unprivileged-minimal-containers
+	  *   	  dev-random-problem-with-unprivileged-minimal-containers
 	  *   
-	  *   The device can be created just as a dummy file instead as real device
-	  *   mknod'ing.
-	  *   => https://unix.stackexchange.com/questions/538594/
-	  *   	how-to-make-dev-inside-linux-namespaces
+	  *   The device can be created just as a dummy file.
+	  *   ==> https://unix.stackexchange.com/questions/538594/
+	  *   	  how-to-make-dev-inside-linux-namespaces
 	  */
 
 
-	  char* default_devs[4] = { "/dev/null",
+	  char* default_devs[6] = { "/dev/null",
 		  		    "/dev/random",
 				    "/dev/urandom",
-				    "/dev/full"
+				    "/dev/full",
+			            "/dev/tty",
+				    "/dev/zero"
 	  			  };
-	  for(int i=0;i<4;i++){
+	  for(int i=0;i<6;i++){
 		 
 		  FILE* fp;
 		  char abs_dev_path[100] = "/home/gabriele/Desktop/Understanding-containers/root_fs";
@@ -259,15 +259,37 @@ void prepare_rootfs(int has_userns){
 		  fp = fopen(abs_dev_path,"a");
 		  
 		  if(fp == NULL){
-			  printErr("");
-			  fprintf(stderr,"=> null device creation failed\n");
-		  }else{
-			  if(mount(default_devs[i],abs_dev_path,"bind",MS_BIND,NULL) == -1)
-				  fprintf(stderr,"=>%s creation failed",default_devs[i]);
+			  fprintf(stderr,"=> %s device creation failed\n",default_devs[i]);
+			  exit(EXIT_FAILURE);
+		 }else{
+			  if(mount(default_devs[i],abs_dev_path,"bind",MS_BIND,"mode=0666") == -1){
+				  fprintf(stderr,"=>%s mount failed\n",default_devs[i]);
+				  exit(EXIT_FAILURE);
+			  }
 		  }
 		  
 		  fclose(fp);
-	  }  
+	  }
+
+	  FILE* fp;
+
+	  /* We assume that both stderr,stdin and stdout are linked to the same pty. */
+	  char* current_pts = ttyname(0);
+
+	  fp = fopen("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/console","a");
+
+	  if(fp == NULL){
+		  fprintf(stderr,"=> console creation failed\n");
+		  exit(EXIT_FAILURE);
+	  }
+
+
+	  if(mount(current_pts,"/home/gabriele/Desktop/Understanding-containers/root_fs/dev/console","bind",MS_BIND,"uid=0,gid=0,mode=0600")==-1){
+		  fprintf(stderr,"=> console bind failed\n");
+		  exit(EXIT_FAILURE);
+	  }
+	  
+	  
   }
  
 
