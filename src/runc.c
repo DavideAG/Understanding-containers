@@ -162,6 +162,7 @@ void runc(struct runc_args *runc_arguments)
         printErr("Unable to create child process");
     }
    
+    /* Set up the network for the child. */
     prepare_netns(child_pid);
 
     /* We force a mapping of 0 1000 1, this means that in the child namespace there will

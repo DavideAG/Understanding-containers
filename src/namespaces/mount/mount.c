@@ -27,7 +27,7 @@
 * layered filesystem approach in which many filesystem “layers”
 * are joined together to present a single coherent root.
 * We’re going to do something much simpler, which is to to assume
-* that a suitable root filesystem has already been prepared for use. */
+* that a suitable root filesystem has already been prepared for use */
 static int
 pivot_root(const char *new_root, const char *put_old)
 {
@@ -36,8 +36,9 @@ pivot_root(const char *new_root, const char *put_old)
 
 /* SEE func (l *linuxStandardInit) Init() on runc/libcontainer for clarification */
 void perform_pivot_root(int has_userns){
- 
- /* Be sure umount events are not propagated to the host. */
+
+
+ /* Be sure umount events are not propagated to the host */
  if(mount("","/","", MS_SLAVE | MS_REC, "") == -1)
     printErr("mount failed");
 
@@ -49,10 +50,18 @@ void perform_pivot_root(int has_userns){
   if (mount("", "/", "", MS_PRIVATE, "") == 1)
       printErr("mount-MS_PRIVATE");
 
-  /* Ensure that 'new_root' is a mount point */
+ 
+  /* Ensure that 'new_root' is a mount point 
+   * By default, when a directory is bind mounted, only that directory is
+   * mounted; if there are any submounts under the directory tree, they
+   * are not bind mounted.  If the MS_REC flag is also specified, then a
+   * recursive bind mount operation is performed: all submounts under the
+   * source subtree (other than unbindable mounts) are also bind mounted
+   * at the corresponding location in the target subtree.*/
   if (mount(FILE_SYSTEM_PATH,FILE_SYSTEM_PATH, "bind", MS_BIND | MS_REC, "") == -1)
       printErr("mount-MS_BIND");
 
+  prepare_rootfs(has_userns);
  /* While the documentation may claim otherwise, pivot_root(".", ".") is
   * actually valid. What this results in is / being the new root but
   * /proc/self/cwd being the old root. Since we can play around with the cwd
@@ -60,7 +69,7 @@ void perform_pivot_root(int has_userns){
   * the rootfs. Shout-outs to the LXC developers for giving us this idea.
   * Instead of using a temporary directory for the pivot_root put-old, use "." both
   * for new-root and old-root.  Then fchdir into the old root temporarily in
-  * order to unmount the old-root, and finallychdir back into our '/'. 
+  * order to unmount the old-root, and finallychdir back into our '/' 
   */
 
   int oldroot = open("/",O_DIRECTORY | O_RDONLY,0);
@@ -125,9 +134,20 @@ void perform_pivot_root(int has_userns){
     printErr("mount oldroot as slave");
 
 
-  prepare_rootfs(has_userns);
+  /* Actually it is needed to mount everything we need before unmounting
+   * the old root. This is because it is not allowed to mount a fs in an
+   * user namespace if it is not already present in the current mount
+   * namespace. 
+   * When we clone we receive a copy of the mount points from our parent
+   * but if we detach the old root we lost them, being not able to mount
+   * anything.
+   */
 
-  /* Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd. */
+  /* Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd.
+   * Here we lost all the mounts point that we received from our parent when
+   * clone was called.
+   * We will see only the mount points of the container that has been prepared
+   * by prepare_rootfs(). */
   if(umount2(".", MNT_DETACH)==-1)
     printErr("unmount oldroot");
 
@@ -189,15 +209,89 @@ void prepare_rootfs(int has_userns){
   /* Only priviliged container can create devices.
    * TODO: how to manage unprivileged container devices? 
    */
-  if(!has_userns){ 
-    if(!create_devices())
+  if (!has_userns) { 
+    if (!create_devices())
 		  fprintf(stderr,"=> devices creation done.\n");
-	  else{
-      fprintf(stderr,"=> devices creation failed.\n");
-      exit(EXIT_FAILURE);
-    }
-  }
+	  else {
+	    fprintf(stderr,"=> devices creation failed.\n");
+	    exit(EXIT_FAILURE);
+	  }
+  } else {
+   /* Set up devices for unpivileged container.
+    *
+	  * One notable restriction is the inability to use the mknod command. 
+    * Permission is denied for device creation within the container when 
+    * run by the root user.
+	  * Why?
+	  * Unprivileged containers have all capabilities, including CAP_MKNOD, it
+    * just so happens that the kernel check for mknod will not allow root in
+    * an unprivileged container to run mknod, no matter its capabilities.
+	  *
+	  * //TODO: possible solutions
+    * 1 Because you are unprivileged, you cannot create /dev/random. All you
+	  *   can do is to bind mount it from the host. So it gets the same uid/gid/perms
+	  *   as on the host. 
+	  *   You can set it up that way yourself by becoming root on the host, mknod'ing
+	  *   the device in the container's /dev, and chowning it to your container root uid.
+	  *   ==> https://lxc-users.linuxcontainers.narkive.com/5MX4xx6N/
+	  *   	  dev-random-problem-with-unprivileged-minimal-containers
+	  *   
+	  *   The device can be created just as a dummy file.
+	  *   ==> https://unix.stackexchange.com/questions/538594/
+	  *   	  how-to-make-dev-inside-linux-namespaces
+	  */
 
+
+	  char* default_devs[6] = {
+            "/dev/null",
+            "/dev/random",
+            "/dev/urandom",
+            "/dev/full",
+            "/dev/tty",
+            "/dev/zero"
+            };
+	  for (int i=0; i<6; i++) {
+		 
+		  FILE* fp;
+		  char abs_dev_path[100] =
+        "/home/gabriele/Desktop/Understanding-containers/root_fs";
+		  
+		  strcat(abs_dev_path,default_devs[i]);
+		  fp = fopen(abs_dev_path,"a");
+		  
+		  if (fp == NULL) {
+			  fprintf(stderr,"=> %s device creation failed\n", default_devs[i]);
+			  exit(EXIT_FAILURE);
+		 } else {
+			  if (mount(default_devs[i],abs_dev_path,"bind",MS_BIND,"mode=0666") == -1) {
+				  fprintf(stderr,"=>%s mount failed\n",default_devs[i]);
+				  exit(EXIT_FAILURE);
+			  }
+		  }
+		  
+		  fclose(fp);
+	  }
+
+	  FILE* fp;
+
+	  /* We assume that both stderr,stdin and stdout are linked to the same pty. */
+	  char* current_pts = ttyname(0);
+
+	  fp = fopen("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/console","a");
+
+	  if(fp == NULL){
+		  fprintf(stderr,"=> console creation failed\n");
+		  exit(EXIT_FAILURE);
+	  }
+
+	  if(mount(current_pts,
+        "/home/gabriele/Desktop/Understanding-containers/root_fs/dev/console",
+        "bind",MS_BIND,"uid=0,gid=0,mode=0600") == -1) {
+		  fprintf(stderr,"=> console bind failed\n");
+		  exit(EXIT_FAILURE);
+	  }
+  }
+ 
   if (!prepare_dev_fd()) {
 	  fprintf(stderr,"=> /dev/fd symlinks done.\n");
   } else {
@@ -251,15 +345,16 @@ int mount_proc()
 
     unsigned long mountflags = MS_NOSUID | MS_NOEXEC | MS_NODEV;
 
-    if (mkdir("/proc", 0755) && errno != EEXIST)
+    if (mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/proc",
+        0755) && errno != EEXIST)
 	    return -1;
    
     /* The proc filesystem is not associated with a special device, and when 
      * mounting it, an arbitrary keyword, such as proc can be used instead of
      * a device specification. This represents the first argument (source) of
      * mount(). */  
-    if (mount("proc", "/proc", "proc", mountflags, NULL) == -1)
-	   return -1;
+    if (mount("proc", "/home/gabriele/Desktop/Understanding-containers/root_fs/proc", "proc", mountflags, NULL) == -1)
+	    return -1;
     
     return 0; 
 }
@@ -268,10 +363,10 @@ int mount_sysfs()
 {
 	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV | MS_RDONLY;
 
-	if(mkdir("/sys", 0755) && errno != EEXIST)
+	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/sys", 0755) && errno != EEXIST)
 		return -1;
 
-	if(mount("sysfs","/sys","sysfs",mountflags,NULL) == -1)
+	if(mount("sysfs","/home/gabriele/Desktop/Understanding-containers/root_fs/sys","sysfs",mountflags,NULL) == -1)
 		return -1;
         
 	return 0;
@@ -281,10 +376,10 @@ int mount_dev()
 {
 	unsigned long mountflags = MS_NOEXEC | MS_STRICTATIME;
 
-	if(mkdir("/dev", 0755) && errno != EEXIST)
+	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/dev", 0755) && errno != EEXIST)
 		return -1;
 
-	if(mount("dev","/dev","tmpfs",mountflags,"mode=755,size=65536k") == -1)
+	if(mount("dev","/home/gabriele/Desktop/Understanding-containers/root_fs/dev","tmpfs",mountflags,"mode=755,size=65536k") == -1)
 		return -1;
         
 	return 0;
@@ -301,11 +396,11 @@ int mount_dev_pts()
 
 	unsigned long mountflags = MS_NOEXEC | MS_NOSUID;
 
-	if(mkdir("/dev/pts", 0755) && errno != EEXIST)
+	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/pts", 0755) && errno != EEXIST)
 		return -1;
 
 	//TODO: gid=5
-	if(mount("devpts","/dev/pts","devpts",mountflags,"newinstance,ptmxmode=066,mode=620") == -1)
+	if(mount("devpts","/home/gabriele/Desktop/Understanding-containers/root_fs/dev/pts","devpts",mountflags,"newinstance,ptmxmode=066,mode=620") == -1)
 		return -1;
         
 	return 0;
@@ -315,11 +410,11 @@ int mount_dev_shm()
 {
 	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV;
 
-	if(mkdir("/dev/shm", 0755) && errno != EEXIST)
+	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/shm", 0755) && errno != EEXIST)
 		return -1;
 
 	//TODO: gid=5
-	if(mount("shm","/dev/shm","tmpfs",mountflags,"mode=1777,size=65536k") == -1)
+	if(mount("shm","/home/gabriele/Desktop/Understanding-containers/root_fs/dev/shm","tmpfs",mountflags,"mode=1777,size=65536k") == -1)
 		return -1;
         
 	return 0;
@@ -329,22 +424,17 @@ int mount_dev_mqueue()
 {
 	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV;
 
-	if(mkdir("/dev/mqueue", 0755) && errno != EEXIST)
+	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/mqueue", 0755) && errno != EEXIST)
 		return -1;
 
-	if(mount("mqueue","/dev/mqueue","mqueue",mountflags,NULL) == -1)
+	if(mount("mqueue","/home/gabriele/Desktop/Understanding-containers/root_fs/dev/mqueue","mqueue",mountflags,NULL) == -1)
 		return -1;
         
 	return 0;
 }
 
-int create_devices()
-{
-	/* One notable restriction is the inability to use the mknod command. 
-   * Permission is denied for device creation within the container when 
-   * run by the root user.
-   */
-
+int create_devices(){
+        
 	unsigned long mknodflags = S_IFCHR | 0666 ;
 	
 	/* If the file type is S_IFCHR or S_IFBLK, then dev specifies the major
@@ -352,30 +442,30 @@ int create_devices()
    * (makedev(3) may be useful to build the value for dev); otherwise it
    *  is ignored.
 	 */	
- 	if(mknod("/dev/null", mknodflags, makedev(1,3)) == -1){
+ 	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/null", mknodflags, makedev(1,3)) == -1){
 		fprintf(stderr,"=> /dev/null failed.\n");
 		return -1;
 	}
-	if(mknod("/dev/zero", mknodflags, makedev(1,5)) == -1){
+	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/zero", mknodflags, makedev(1,5)) == -1){
 		fprintf(stderr,"=> /dev/zero failed.\n");
 		return -1;
 	}
 
-	if(mknod("/dev/full", mknodflags, makedev(1,7)) == -1){
+	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/full", mknodflags, makedev(1,7)) == -1){
 		fprintf(stderr,"=> /dev/full failed.\n");
 		return -1;
 	}
-	if(mknod("/dev/tty",mknodflags, makedev(4,1)) == -1){
+	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/tty",mknodflags, makedev(4,1)) == -1){
 		fprintf(stderr,"=> /dev/tty failed.\n");
 		return -1;
 	}
 
-	if(mknod("/dev/random",mknodflags, makedev(1,8)) == -1){
+	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/random",mknodflags, makedev(1,8)) == -1){
 		fprintf(stderr,"=> /dev/random failed.\n");
 		return -1;
 	}
 
-	if(mknod("/dev/urandom",mknodflags, makedev(1,9)) == -1){
+	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/urandom",mknodflags, makedev(1,9)) == -1){
 		fprintf(stderr,"=> /dev/urandom failed.\n");
 		return -1;
 	}
@@ -386,8 +476,8 @@ int create_devices()
 int prepare_dev_fd()
 {
 	//TODO: error checks.
-	symlink("/proc/self/fd","/dev/fd"); 
-	symlink("/proc/self/fd/0","/dev/stdin"); 
-	symlink("/proc/self/fd/1","/dev/stdout"); 
-	symlink("/proc/self/fd/2","/dev/stderr");		
+	/*symlink("..root_fs/proc/self/fd","..root_fs/dev/fd"); 
+	symlink("..root_fs/proc/self/fd/0","..root_fs/dev/stdin"); 
+	symlink("..root_fs/proc/self/fd/1","..root_fs/dev/stdout"); 
+	symlink("..root_fs/proc/self/fd/2","..root_fs/dev/stderr");*/		
 }
