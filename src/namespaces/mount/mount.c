@@ -37,7 +37,6 @@ pivot_root(const char *new_root, const char *put_old)
 /* SEE func (l *linuxStandardInit) Init() on runc/libcontainer for clarification. */
 void perform_pivot_root(int has_userns){
 
- prepare_rootfs(has_userns);
 
  /* Be sure umount events are not propagated to the host. */
  if(mount("","/","", MS_SLAVE | MS_REC, "") == -1)
@@ -51,6 +50,7 @@ void perform_pivot_root(int has_userns){
   if (mount("", "/", "", MS_PRIVATE, "") == 1)
       printErr("mount-MS_PRIVATE");
 
+ 
   /* Ensure that 'new_root' is a mount point 
    * By default, when a directory is bind mounted, only that directory is
    * mounted; if there are any submounts under the directory tree, they
@@ -61,6 +61,7 @@ void perform_pivot_root(int has_userns){
   if (mount(FILE_SYSTEM_PATH,FILE_SYSTEM_PATH, "bind", MS_BIND | MS_REC, "") == -1)
       printErr("mount-MS_BIND");
 
+  prepare_rootfs(has_userns);
  /* While the documentation may claim otherwise, pivot_root(".", ".") is
   * actually valid. What this results in is / being the new root but
   * /proc/self/cwd being the old root. Since we can play around with the cwd
@@ -353,7 +354,7 @@ int mount_proc() {
      * mounting it, an arbitrary keyword, such as proc can be used instead of
      * a device specification. This represents the first argument (source) of
      * mount(). */  
-    if (mount("proc", "/home/gabriele/Desktop/Understanding-containers/root_fs//proc", "proc", mountflags, NULL) == -1)
+    if (mount("proc", "/home/gabriele/Desktop/Understanding-containers/root_fs/proc", "proc", mountflags, NULL) == -1)
 	   return -1;
     
     return 0; 
