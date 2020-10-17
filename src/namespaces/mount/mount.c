@@ -254,7 +254,7 @@ void prepare_rootfs(int has_userns){
 		 
 		  FILE* fp;
 		  char abs_dev_path[100] =
-        "/home/gabriele/Desktop/Understanding-containers/root_fs";
+        "/home/davide/Understanding-containers/root_fs";
 		  
 		  strcat(abs_dev_path,default_devs[i]);
 		  fp = fopen(abs_dev_path,"a");
@@ -277,7 +277,7 @@ void prepare_rootfs(int has_userns){
 	  /* We assume that both stderr,stdin and stdout are linked to the same pty. */
 	  char* current_pts = ttyname(0);
 
-	  fp = fopen("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/console","a");
+	  fp = fopen("/home/davide/Understanding-containers/root_fs/dev/console","a");
 
 	  if(fp == NULL){
 		  fprintf(stderr,"=> console creation failed\n");
@@ -285,7 +285,7 @@ void prepare_rootfs(int has_userns){
 	  }
 
 	  if(mount(current_pts,
-        "/home/gabriele/Desktop/Understanding-containers/root_fs/dev/console",
+        "/home/davide/Understanding-containers/root_fs/dev/console",
         "bind",MS_BIND,"uid=0,gid=0,mode=0600") == -1) {
 		  fprintf(stderr,"=> console bind failed\n");
 		  exit(EXIT_FAILURE);
@@ -345,7 +345,7 @@ int mount_proc()
 
     unsigned long mountflags = MS_NOSUID | MS_NOEXEC | MS_NODEV;
 
-    if (mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/proc",
+    if (mkdir("/home/davide/Understanding-containers/root_fs/proc",
         0755) && errno != EEXIST)
 	    return -1;
    
@@ -353,7 +353,7 @@ int mount_proc()
      * mounting it, an arbitrary keyword, such as proc can be used instead of
      * a device specification. This represents the first argument (source) of
      * mount(). */  
-    if (mount("proc", "/home/gabriele/Desktop/Understanding-containers/root_fs/proc", "proc", mountflags, NULL) == -1)
+    if (mount("proc", "/home/davide/Understanding-containers/root_fs/proc", "proc", mountflags, NULL) == -1)
 	    return -1;
     
     return 0; 
@@ -363,10 +363,10 @@ int mount_sysfs()
 {
 	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV | MS_RDONLY;
 
-	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/sys", 0755) && errno != EEXIST)
+	if(mkdir("/home/davide/Understanding-containers/root_fs/sys", 0755) && errno != EEXIST)
 		return -1;
 
-	if(mount("sysfs","/home/gabriele/Desktop/Understanding-containers/root_fs/sys","sysfs",mountflags,NULL) == -1)
+	if(mount("sysfs","/home/davide/Understanding-containers/root_fs/sys","sysfs",mountflags,NULL) == -1)
 		return -1;
         
 	return 0;
@@ -376,10 +376,10 @@ int mount_dev()
 {
 	unsigned long mountflags = MS_NOEXEC | MS_STRICTATIME;
 
-	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/dev", 0755) && errno != EEXIST)
+	if(mkdir("/home/davide/Understanding-containers/root_fs/dev", 0755) && errno != EEXIST)
 		return -1;
 
-	if(mount("dev","/home/gabriele/Desktop/Understanding-containers/root_fs/dev","tmpfs",mountflags,"mode=755,size=65536k") == -1)
+	if(mount("dev","/home/davide/Understanding-containers/root_fs/dev","tmpfs",mountflags,"mode=755,size=65536k") == -1)
 		return -1;
         
 	return 0;
@@ -396,11 +396,11 @@ int mount_dev_pts()
 
 	unsigned long mountflags = MS_NOEXEC | MS_NOSUID;
 
-	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/pts", 0755) && errno != EEXIST)
+	if(mkdir("/home/davide/Understanding-containers/root_fs/dev/pts", 0755) && errno != EEXIST)
 		return -1;
 
 	//TODO: gid=5
-	if(mount("devpts","/home/gabriele/Desktop/Understanding-containers/root_fs/dev/pts","devpts",mountflags,"newinstance,ptmxmode=066,mode=620") == -1)
+	if(mount("devpts","/home/davide/Understanding-containers/root_fs/dev/pts","devpts",mountflags,"newinstance,ptmxmode=066,mode=620") == -1)
 		return -1;
         
 	return 0;
@@ -410,11 +410,11 @@ int mount_dev_shm()
 {
 	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV;
 
-	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/shm", 0755) && errno != EEXIST)
+	if(mkdir("/home/davide/Understanding-containers/root_fs/dev/shm", 0755) && errno != EEXIST)
 		return -1;
 
 	//TODO: gid=5
-	if(mount("shm","/home/gabriele/Desktop/Understanding-containers/root_fs/dev/shm","tmpfs",mountflags,"mode=1777,size=65536k") == -1)
+	if(mount("shm","/home/davide/Understanding-containers/root_fs/dev/shm","tmpfs",mountflags,"mode=1777,size=65536k") == -1)
 		return -1;
         
 	return 0;
@@ -424,10 +424,10 @@ int mount_dev_mqueue()
 {
 	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV;
 
-	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/mqueue", 0755) && errno != EEXIST)
+	if(mkdir("/home/davide/Understanding-containers/root_fs/dev/mqueue", 0755) && errno != EEXIST)
 		return -1;
 
-	if(mount("mqueue","/home/gabriele/Desktop/Understanding-containers/root_fs/dev/mqueue","mqueue",mountflags,NULL) == -1)
+	if(mount("mqueue","/home/davide/Understanding-containers/root_fs/dev/mqueue","mqueue",mountflags,NULL) == -1)
 		return -1;
         
 	return 0;
@@ -442,30 +442,30 @@ int create_devices(){
    * (makedev(3) may be useful to build the value for dev); otherwise it
    *  is ignored.
 	 */	
- 	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/null", mknodflags, makedev(1,3)) == -1){
+ 	if(mknod("/home/davide/Understanding-containers/root_fs/dev/null", mknodflags, makedev(1,3)) == -1){
 		fprintf(stderr,"=> /dev/null failed.\n");
 		return -1;
 	}
-	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/zero", mknodflags, makedev(1,5)) == -1){
+	if(mknod("/home/davide/Understanding-containers/root_fs/dev/zero", mknodflags, makedev(1,5)) == -1){
 		fprintf(stderr,"=> /dev/zero failed.\n");
 		return -1;
 	}
 
-	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/full", mknodflags, makedev(1,7)) == -1){
+	if(mknod("/home/davide/Understanding-containers/root_fs/dev/full", mknodflags, makedev(1,7)) == -1){
 		fprintf(stderr,"=> /dev/full failed.\n");
 		return -1;
 	}
-	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/tty",mknodflags, makedev(4,1)) == -1){
+	if(mknod("/home/davide/Understanding-containers/root_fs/dev/tty",mknodflags, makedev(4,1)) == -1){
 		fprintf(stderr,"=> /dev/tty failed.\n");
 		return -1;
 	}
 
-	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/random",mknodflags, makedev(1,8)) == -1){
+	if(mknod("/home/davide/Understanding-containers/root_fs/dev/random",mknodflags, makedev(1,8)) == -1){
 		fprintf(stderr,"=> /dev/random failed.\n");
 		return -1;
 	}
 
-	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/urandom",mknodflags, makedev(1,9)) == -1){
+	if(mknod("/home/davide/Understanding-containers/root_fs/dev/urandom",mknodflags, makedev(1,9)) == -1){
 		fprintf(stderr,"=> /dev/urandom failed.\n");
 		return -1;
 	}

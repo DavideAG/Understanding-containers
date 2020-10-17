@@ -11,11 +11,11 @@
 int main(int argc, char *argv[])
 {
 	int option = 0;
-	bool has_userns=false;
 	char **child_entrypoint;
 	bool empty = false;
 	bool runall = false;
 	bool pids_flag = false;
+	bool has_userns = false;
 	bool cgroup_flag = false;
 	bool memory_flag = false;
 	bool weight_flag = false;
@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
 
 			case 'U':
 				has_userns = true;
+				break;
 
 			case 'c':
 				debug_print("case cgroup\n");
@@ -154,7 +155,7 @@ int main(int argc, char *argv[])
 	runc_arguments->child_entrypoint_size = (size_t) argc - optind;
 	runc_arguments->resources = cgroup_arguments;
 
-	//privileged or unprivileged container.
+	// privileged or unprivileged container
 	runc_arguments->has_userns = has_userns;
 
 	if (runall) {
@@ -166,7 +167,6 @@ int main(int argc, char *argv[])
 	}
 		
 	// Now it's time to free them. Bye!
-	free(child_entrypoint);
 	free(runc_arguments->resources->max_pids);
 	free(runc_arguments->resources->io_weight);
 	free(runc_arguments->resources->cpu_shares);
@@ -176,7 +176,8 @@ int main(int argc, char *argv[])
 	for (int i = 0; i < argc - optind; ++i) {
 		free(child_entrypoint[i]);
 	}
-	
+	free(child_entrypoint);
+
 	exit(EXIT_SUCCESS);
 
 

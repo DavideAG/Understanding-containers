@@ -123,7 +123,8 @@ void runc(struct runc_args *runc_arguments)
     *                  (we have to setup interfaces inside the namespace)
     * - CLONE_NEWUSER: User namespace. (we have to provide a UID/GID mapping)
     *                  about UID and GUI:
-    * https://medium.com/@gggauravgandhi/uid-user-identifier-and-gid-group-identifier-in-linux-121ea68bf510
+    *       https://medium.com/@gggauravgandhi/
+    *       uid-user-identifier-and-gid-group-identifier-in-linux-121ea68bf510
     * 
     * The execution context of the cloned process is, in part, defined
     * by the flags passed in.
@@ -146,6 +147,7 @@ void runc(struct runc_args *runc_arguments)
         clone_flags |= CLONE_NEWCGROUP;
         args.resources = runc_arguments->resources;
 
+        fprintf(stderr, "dentroooooooooooooooooooo\n");
         /* apply resource limitations */
         apply_cgroups(args.resources);
     }
