@@ -1,20 +1,66 @@
 #define _GNU_SOURCE
+
 #include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/syscall.h>
-#include <sys/mount.h>
-#include <sys/stat.h>
 #include <limits.h>
 #include <string.h>
 #include <errno.h>
-#include <sys/types.h>
 #include <fcntl.h>
+
+#include <sys/syscall.h>
+#include <sys/mount.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/sysmacros.h>
+
+#include<linux/limits.h>
+
 #include "mount.h"
 #include "../../helpers/helpers.h"
 #include "../../../config.h"
+
+#define DEFAULT_DEVS 7
+#define DEFAULT_FS 6
+
+struct device {
+	
+	const char *path;
+	int flags;
+	int major;
+	int minor;
+	uid_t uid;
+	gid_t gid;
+
+};
+
+struct filesystem {
+	const char *path;
+	const char* type;
+	int flags;
+	const char* data;
+};
+
+struct device default_devs[] = {{ "/dev/null", S_IFCHR | 0666, 1, 3, 0, 0 },
+                                { "/dev/zero", S_IFCHR | 0666, 1, 5, 0, 0 },
+                                { "/dev/full", S_IFCHR | 0666, 1, 7, 0, 0 },
+                                { "/dev/tty", S_IFCHR | 0666, 5, 0, 0, 0 },
+                                { "/dev/random", S_IFCHR | 0666, 1, 8, 0, 0 },
+                                { "/dev/urandom", S_IFCHR | 0666, 1, 9, 0, 0 },
+				{ "/dev/console", S_IFCHR | 0666, 5, 1, 0, 0}
+                               };
+
+
+
+struct filesystem default_fs[] = {{"/proc", "proc", MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL},
+				  {"/dev", "tmpfs", MS_NOEXEC | MS_STRICTATIME, "mode=755"},
+				  {"/dev/shm", "tmpfs", MS_NOEXEC | MS_NOSUID | MS_NODEV, "mode=1777,size=65536k"},
+				  {"/dev/mqueue", "mqueue", MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL},
+				  {"/dev/pts", "devpts", MS_NOEXEC | MS_NOSUID, "newinstance,ptmxmode=0666,mode=620"}, //TODO gid=5?
+				  {"/sys", "sysfs", MS_NOEXEC | MS_NOSUID | MS_NODEV | MS_RDONLY, NULL}
+				 };
+
 
 /*
 * Oh no glibc for pivot_root! We will use syscall.
@@ -161,61 +207,48 @@ void perform_pivot_root(int has_userns){
 
 void prepare_rootfs(int has_userns){
 
-  /* Set up the proc VFS */
-  if(!mount_proc()){
-	  fprintf(stderr,"=> procfs mount done.\n");
-  }else{
-	  fprintf(stderr,"=> procfs mount failed.\n");
-	  exit(EXIT_FAILURE);
-  }
+	int i;
+	char* base_path;
+	char* target_fs;
+	FILE* fp;	 
+	char* target_dev_path;
 
-  /* Set up the sysfs */
-  if(!mount_sysfs()){
-	  fprintf(stderr,"=> sysfs mount done.\n");
-  }else{
-	  fprintf(stderr,"=> sysfs mount failed.\n");
-	  exit(EXIT_FAILURE);
-  }
- 
-  /* Set up the /dev fs */
-  if(!mount_dev()){
-	  fprintf(stderr,"=> /dev mount done.\n");
-  }else{
-	  fprintf(stderr,"=> /dev mount failed.\n");
-	  exit(EXIT_FAILURE);
-  }
+	base_path = get_rootfs();
+        if(base_path == NULL){
+		fprintf(stderr,"=> cannot retrieve root_fs path.\n");
+		exit(EXIT_FAILURE);
+	}
 
-  /* Set up the /dev/pts fs */
-  if(!mount_dev_pts()){
-	  fprintf(stderr,"=> /dev/pts mount done.\n");
-  }else{
-	  fprintf(stderr,"=> /dev/pts mount failed.\n");
-	  exit(EXIT_FAILURE);
-  } 
+        target_fs = base_path;
+	for(i=0;i<DEFAULT_FS;i++){
+		if(strcat(target_fs,default_fs[i].path) == NULL){
+			fprintf(stderr,"=> strcat failed.\n");
+			exit(EXIT_FAILURE);
+		}
+		if(mkdir(target_fs, 0755) && errno != EEXIST){
+			fprintf(stderr,"=> mkdir %s failed.\n",default_fs[i].path);
+			exit(EXIT_FAILURE);
+		}
+		if(mount("none",target_fs,default_fs[i].type,default_fs[i].flags,default_fs[i].data) == -1){
+			fprintf(stderr,"=> mount %s failed.\n",default_fs[i].path);
+			exit(EXIT_FAILURE);
+		}
+		target_fs[strlen(target_fs)-strlen(default_fs[i].path)]='\0';		
+	}
 
-  if(!mount_dev_shm()){
-	  fprintf(stderr,"=> /dev/shm mount done.\n");
-  }else{
-	  fprintf(stderr,"=> /dev/shm mount failed.\n");
-	  exit(EXIT_FAILURE);
-  }
-
-  if(!mount_dev_mqueue()){
-	  fprintf(stderr,"=> /dev/queue mount done.\n");
-  }else{
-	  fprintf(stderr,"=> /dev/queue mount failed.\n");
-	  exit(EXIT_FAILURE);
-  } 
-
-  /* Only priviliged container can create devices.
-   * TODO: how to manage unprivileged container devices? 
-   */
-  if(!has_userns){ 
-	  if(!create_devices())
-		  fprintf(stderr,"=> devices creation done.\n");
-	  else{
-	          fprintf(stderr,"=> devices creation failed.\n");
-	          exit(EXIT_FAILURE);
+  target_dev_path  = base_path;
+  
+  if(!has_userns){
+	  for(i=0;i<DEFAULT_DEVS-1;i++){
+		  if(strcat(target_dev_path,default_devs[i].path) == NULL){
+			  fprintf(stderr,"=> strcat() failed.\n");
+			  exit(EXIT_FAILURE);
+		  }
+		  if(mknod(target_dev_path, default_devs[i].flags, makedev(default_devs[i].major,default_devs[i].minor)) == -1){
+			  fprintf(stderr,"=> mknod %s failed.\n",default_devs[i].path);
+			  exit(EXIT_FAILURE);
+		  }
+		  target_dev_path[strlen(target_dev_path)-strlen(default_devs[i].path)]='\0';
 	  }
   }else{
          /* Set up devices for unpivileged container.
@@ -241,58 +274,56 @@ void prepare_rootfs(int has_userns){
 	  *   ==> https://unix.stackexchange.com/questions/538594/
 	  *   	  how-to-make-dev-inside-linux-namespaces
 	  */
-
-
-	  char* default_devs[6] = { "/dev/null",
-		  		    "/dev/random",
-				    "/dev/urandom",
-				    "/dev/full",
-			            "/dev/tty",
-				    "/dev/zero"
-	  			  };
-	  for(int i=0;i<6;i++){
-		 
-		  FILE* fp;
-		  char abs_dev_path[100] = "/home/gabriele/Desktop/Understanding-containers/root_fs";
-		  
-		  strcat(abs_dev_path,default_devs[i]);
-		
-		  fp = fopen(abs_dev_path,"a");
-		  
-		  if(fp == NULL){
-			  fprintf(stderr,"=> %s device creation failed\n",default_devs[i]);
-			  exit(EXIT_FAILURE);
-		 }else{
-			  if(mount(default_devs[i],abs_dev_path,"bind",MS_BIND,"mode=0666") == -1){
-				  fprintf(stderr,"=>%s mount failed\n",default_devs[i]);
+		  /* We setup console later */
+		  for(i=0;i<DEFAULT_DEVS-1;i++){
+			  if(strcat(target_dev_path,default_devs[i].path) == NULL){
+				  fprintf(stderr,"=> strcat() failed.\n");
 				  exit(EXIT_FAILURE);
 			  }
+
+			  fp = fopen(target_dev_path,"a");
+
+			  if(fp == NULL){
+				  fprintf(stderr,"=> %s device creation failed\n",default_devs[i].path);
+				  exit(EXIT_FAILURE);
+			  }else{
+				  if(mount(default_devs[i].path,target_dev_path,"bind",MS_BIND | MS_PRIVATE,"uid=0,gid=0,mode=0666") == -1){
+					  fprintf(stderr,"=>%s mount failed\n",default_devs[i].path);
+					  exit(EXIT_FAILURE);
+				  }
+			  }
+			  fclose(fp);
+			  target_dev_path[strlen(target_dev_path)-strlen(default_devs[i].path)]='\0';
 		  }
-		  
-		  fclose(fp);
-	  }
-
-	  FILE* fp;
-
-	  /* We assume that both stderr,stdin and stdout are linked to the same pty. */
-	  char* current_pts = ttyname(0);
-
-	  fp = fopen("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/console","a");
-
-	  if(fp == NULL){
-		  fprintf(stderr,"=> console creation failed\n");
-		  exit(EXIT_FAILURE);
-	  }
-
-
-	  if(mount(current_pts,"/home/gabriele/Desktop/Understanding-containers/root_fs/dev/console","bind",MS_BIND,"uid=0,gid=0,mode=0600")==-1){
-		  fprintf(stderr,"=> console bind failed\n");
-		  exit(EXIT_FAILURE);
-	  }
-	  
-	  
   }
- 
+  
+  /* SETUP CONSOLE
+   *
+   * The use of a pseudo TTY is optional within a container and it should 
+   * support both. If a pseudo is provided to the container /dev/console 
+   * will need to be setup by binding the console in /dev/ after it has 
+   * been populated and mounted in tmpfs.
+   */
+
+  /* We assume that both stderr,stdin and stdout are linked to the same pty. */
+  char* current_pts = ttyname(0);
+
+  if(strcat(target_dev_path,default_devs[i].path) == NULL){
+	  fprintf(stderr,"=> strcat() failed.\n");
+	  exit(EXIT_FAILURE);
+  }
+  /* create target */
+  fp = fopen(target_dev_path,"a");
+
+  if(fp == NULL){
+	  fprintf(stderr,"=> console creation failed\n");
+	  exit(EXIT_FAILURE);
+  }
+  if(mount(current_pts,target_dev_path,"bind",MS_BIND | MS_PRIVATE,"uid=0,gid=0,mode=0600")==-1){
+	  fprintf(stderr,"=> console bind failed\n");
+	  exit(EXIT_FAILURE);
+  }
+  fclose(fp);
 
   if(!prepare_dev_fd()){
 	  fprintf(stderr,"=> /dev/fd symlinks done.\n");
@@ -300,186 +331,27 @@ void prepare_rootfs(int has_userns){
 	fprintf(stderr,"=> /dev/fd symlinks failed.\n");
 	exit(EXIT_FAILURE);
   }
-
-}
-
-int mount_proc() {
-    /*
-    * When we execute `ps`, we are able to see the process IDs. It will
-    * look inside the directory called `/proc` (ls /proc) to get process
-    * informations. From the host machine point of view, we can see all
-    * the processes running on it.
-    *
-    * `/proc` isn't just a regular file system but a pseudo file system.
-    * It does not contain real files but rather runtime system information
-    * (e.g. system memory, devices mounted, hardware configuration, etc).
-    * It is a mechanism the kernel uses to communicate information about
-    * running processes from the kernel space into user spaces. From the
-    * user space, it looks like a normal file system.
-    * For example, informations about the current self process is stored
-    * inside /proc/self. You can find the name of the process using
-    * [ls -l /proc/self/exe].
-    * Using a sequence of [ls -l /proc/self] you can see that your self
-    * process has a new processID because /proc/self changes at the start
-    * of a new process.
-    *
-    * Because we change the root inside the container, we don't currently
-    * have this `/procs` file system available. Therefore, we need to
-    * mount it otherwise the container process will see the same `/proc`
-    * directory of the host.
-    */
-
-    /*
-     * As proposed by docker runc spec (see the link in "Pointers" section
-     * of README.md)
-     * 
-     * MS_NOEXEC -> do not allow programs to be executed from this
-     *              filesystem
-     * MS_NOSUID -> Do not honor set-user-ID and set-group-ID bits or file
-     *              capabilities when executing programs from this filesystem.
-     * MS_NODEV  -> Do not allow access to devices (special files) on this
-     *              filesystem.
-     *
-     * for more informations about mount flags:
-     *      http://man7.org/linux/man-pages/man2/mount.2.html
-     */
-    
-
-    unsigned long mountflags = MS_NOSUID | MS_NOEXEC | MS_NODEV;
-
-    if (mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/proc", 0755) && errno != EEXIST)
-	    return -1;
-   
-    /* The proc filesystem is not associated with a special device, and when 
-     * mounting it, an arbitrary keyword, such as proc can be used instead of
-     * a device specification. This represents the first argument (source) of
-     * mount(). */  
-    if (mount("proc", "/home/gabriele/Desktop/Understanding-containers/root_fs/proc", "proc", mountflags, NULL) == -1)
-	   return -1;
-    
-    return 0; 
-}
-
-int mount_sysfs(){
-
-	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV | MS_RDONLY;
-
-	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/sys", 0755) && errno != EEXIST)
-		return -1;
-
-	if(mount("sysfs","/home/gabriele/Desktop/Understanding-containers/root_fs/sys","sysfs",mountflags,NULL) == -1)
-		return -1;
-        
-	return 0;
-}
-
-int mount_dev(){
-
-	unsigned long mountflags = MS_NOEXEC | MS_STRICTATIME;
-
-	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/dev", 0755) && errno != EEXIST)
-		return -1;
-
-	if(mount("dev","/home/gabriele/Desktop/Understanding-containers/root_fs/dev","tmpfs",mountflags,"mode=755,size=65536k") == -1)
-		return -1;
-        
-	return 0;
-
-}
-
-int mount_dev_pts(){
-
-	/* The shell is actually within a pty but the pty itself is outside the container,
-	 * so commands like 'tty' thinks we are not within a tty. However, if you directly 
-	 * call the isatty() function, it will return true. The solution would be to create 
-	 * the pty within the container instead of outside.
-	 */
-
-	unsigned long mountflags = MS_NOEXEC | MS_NOSUID;
-
-	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/pts", 0755) && errno != EEXIST)
-		return -1;
-
-	//TODO: gid=5
-	if(mount("devpts","/home/gabriele/Desktop/Understanding-containers/root_fs/dev/pts","devpts",mountflags,"newinstance,ptmxmode=066,mode=620") == -1)
-		return -1;
-        
-	return 0;
-}
-
-int mount_dev_shm(){
-
-	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV;
-
-	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/shm", 0755) && errno != EEXIST)
-		return -1;
-
-	//TODO: gid=5
-	if(mount("shm","/home/gabriele/Desktop/Understanding-containers/root_fs/dev/shm","tmpfs",mountflags,"mode=1777,size=65536k") == -1)
-		return -1;
-        
-	return 0;
-}
-
-int mount_dev_mqueue(){
-	
-	unsigned long mountflags = MS_NOEXEC | MS_NOSUID | MS_NODEV;
-
-	if(mkdir("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/mqueue", 0755) && errno != EEXIST)
-		return -1;
-
-	if(mount("mqueue","/home/gabriele/Desktop/Understanding-containers/root_fs/dev/mqueue","mqueue",mountflags,NULL) == -1)
-		return -1;
-        
-	return 0;
-}
-
-int create_devices(){
-        
-	unsigned long mknodflags = S_IFCHR | 0666 ;
-	
-	/* If the file type is S_IFCHR or S_IFBLK, then dev specifies the major
-         * and minor numbers of the newly created device special file
-         * (makedev(3) may be useful to build the value for dev); otherwise it
-         *  is ignored.
-	 */	
- 	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/null", mknodflags, makedev(1,3)) == -1){
-		fprintf(stderr,"=> /dev/null failed.\n");
-		return -1;
-	}
-	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/zero", mknodflags, makedev(1,5)) == -1){
-		fprintf(stderr,"=> /dev/zero failed.\n");
-		return -1;
-	}
-
-	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/full", mknodflags, makedev(1,7)) == -1){
-		fprintf(stderr,"=> /dev/full failed.\n");
-		return -1;
-	}
-	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/tty",mknodflags, makedev(4,1)) == -1){
-		fprintf(stderr,"=> /dev/tty failed.\n");
-		return -1;
-	}
-
-	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/random",mknodflags, makedev(1,8)) == -1){
-		fprintf(stderr,"=> /dev/random failed.\n");
-		return -1;
-	}
-
-	if(mknod("/home/gabriele/Desktop/Understanding-containers/root_fs/dev/urandom",mknodflags, makedev(1,9)) == -1){
-		fprintf(stderr,"=> /dev/urandom failed.\n");
-		return -1;
-	}
-
-	return 0;
-
 }
 
 int prepare_dev_fd(){
-	
 	//TODO: error checks.
 	/*symlink("..root_fs/proc/self/fd","..root_fs/dev/fd"); 
 	symlink("..root_fs/proc/self/fd/0","..root_fs/dev/stdin"); 
 	symlink("..root_fs/proc/self/fd/1","..root_fs/dev/stdout"); 
 	symlink("..root_fs/proc/self/fd/2","..root_fs/dev/stderr");*/		
+}
+
+char* get_rootfs(){
+	  static char root_fs[PATH_MAX];
+	  if(getcwd(root_fs,PATH_MAX) ==  NULL){
+		  fprintf(stderr,"=> getcwd() failed.\n");
+		  return NULL;
+	  }
+	  if(memmove(&root_fs[strlen(root_fs)-strlen("build")],
+		     "root_fs",sizeof("root_fs")) == NULL ){
+
+		  fprintf(stderr,"=> memmove() failed.\n");
+		  return NULL;
+	  }
+	  return root_fs;
 }
