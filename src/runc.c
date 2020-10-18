@@ -27,7 +27,6 @@ int child_fn(void *args_par)
     char ch;
     
     if(args->has_userns){
-
 	    /* We are the consumer*/
 	    close(args->sync_uid_gid_map_fd[1]);
 
@@ -36,7 +35,6 @@ int child_fn(void *args_par)
 		    fprintf(stderr, "Failure in child: read from pipe returned != 0\n");
 		    exit(EXIT_FAILURE);
 	    }
-
 	   close(args->sync_uid_gid_map_fd[0]);
            
 	   /* UID 0 maps to UID 1000 outside. Ensure that the exec process
@@ -46,22 +44,51 @@ int child_fn(void *args_par)
 	   if (setresuid(0,0,0) == -1)
 		    printErr("Failed to setuid.\n");
 
-	   fprintf(stderr,"=> setuid and seguid done.\n");
-
-
-	  
+	   fprintf(stderr,"=> setuid and seguid done.\n");	  
     }
 
     /* setting new hostname */
     set_container_hostname();
 
+    /* Be sure umount events are not propagated to the host. */
+    if(mount("","/","", MS_SLAVE | MS_REC, "") == -1)
+	    printErr("mount failed");
+
+   /* Make parent mount private to make sure following bind mount does
+    * not propagate in other namespaces. Also it will help with kernel
+    * check pass in pivot_root. (IS_SHARED(new_mnt->mnt_parent))
+    * link1) https://bugzilla.redhat.com/show_bug.cgi?id=1361043 
+    * link2) check prepareRoot() function in runC/rootfs_linux_go */
+    if (mount("", "/", "", MS_PRIVATE, "") == 1)
+	    printErr("mount-MS_PRIVATE");
+ 
+   /* Ensure that 'new_root' is a mount point. 
+    * By default, when a directory is bind mounted, only that directory is
+    * mounted; if there are any submounts under the directory tree, they
+    * are not bind mounted.  If the MS_REC flag is also specified, then a
+    * recursive bind mount operation is performed: all submounts under the
+    * source subtree (other than unbindable mounts) are also bind mounted
+    * at the corresponding location in the target subtree.*/
+    if (mount(FILE_SYSTEM_PATH,FILE_SYSTEM_PATH, "bind", MS_BIND | MS_REC, "") == -1)
+	    printErr("mount-MS_BIND");
+
+   /* Actually it is needed to mount everything we need before unmounting
+    * the old root. This is because it is not allowed to mount a fs in an
+    * user namespace if it is not already present in the current mount
+    * namespace. 
+    * When we clone we receive a copy of the mount points from our parent
+    * but if we detach the old root we lost them, being not able to mount
+    * anything.
+    */
+    prepare_rootfs(args->has_userns);
+
     /* mounting the new container file system */
     perform_pivot_root(args->has_userns);
 
+    prepare_dev_fd();
    /* The root user inside the container must have less privileges than
     * the real host root, so drop some capablities. */
     //drop_caps();
-
     //sys_filter();
       
     if (execvp(args->command[0], args->command) != 0)
@@ -151,7 +178,6 @@ void runc(struct runc_args *runc_arguments)
 
     child_pid = clone(child_fn, child_stack + STACK_SIZE,
             	      clone_flags | SIGCHLD, &args);
-
 
     if (child_pid < 0)
         printErr("Unable to create child process");
