@@ -43,34 +43,34 @@ struct symlink {
 	const char* target;
 };
 
-
-struct device default_devs[] = {{ "/dev/null", S_IFCHR | 0666, 1, 3, 0, 0 },
-                                { "/dev/zero", S_IFCHR | 0666, 1, 5, 0, 0 },
-                                { "/dev/full", S_IFCHR | 0666, 1, 7, 0, 0 },
-                                { "/dev/tty", S_IFCHR | 0666, 5, 0, 0, 0 },
-                                { "/dev/random", S_IFCHR | 0666, 1, 8, 0, 0 },
-                                { "/dev/urandom", S_IFCHR | 0666, 1, 9, 0, 0 },
-								{ "/dev/console", S_IFCHR | 0666, 5, 1, 0, 0}
-                               };
+struct device default_devs[] = {
+	{ "/dev/null", S_IFCHR | 0666, 1, 3, 0, 0 },
+	{ "/dev/zero", S_IFCHR | 0666, 1, 5, 0, 0 },
+	{ "/dev/full", S_IFCHR | 0666, 1, 7, 0, 0 },
+	{ "/dev/tty", S_IFCHR | 0666, 5, 0, 0, 0 },
+	{ "/dev/random", S_IFCHR | 0666, 1, 8, 0, 0 },
+	{ "/dev/urandom", S_IFCHR | 0666, 1, 9, 0, 0 },
+	{ "/dev/console", S_IFCHR | 0666, 5, 1, 0, 0}
+	};
 
 
 
 struct filesystem default_fs[] = {
-		{"/proc", "proc", MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL},
-		{"/dev", "tmpfs", MS_NOEXEC | MS_STRICTATIME, "mode=755"},
-		{"/dev/shm", "tmpfs", MS_NOEXEC | MS_NOSUID | MS_NODEV, "mode=1777,size=65536k"},
-		{"/dev/mqueue", "mqueue", MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL},
-		{"/dev/pts", "devpts", MS_NOEXEC | MS_NOSUID, "newinstance,ptmxmode=0666,mode=620"}, //TODO gid=5?
-		{"/sys", "sysfs", MS_NOEXEC | MS_NOSUID | MS_NODEV | MS_RDONLY, NULL}
-		};
+	{"/proc", "proc", MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL},
+	{"/dev", "tmpfs", MS_NOEXEC | MS_STRICTATIME, "mode=755"},
+	{"/dev/shm", "tmpfs", MS_NOEXEC | MS_NOSUID | MS_NODEV, "mode=1777,size=65536k"},
+	{"/dev/mqueue", "mqueue", MS_NOEXEC | MS_NOSUID | MS_NODEV, NULL},
+	{"/dev/pts", "devpts", MS_NOEXEC | MS_NOSUID, "newinstance,ptmxmode=0666,mode=620"}, //TODO gid=5?
+	{"/sys", "sysfs", MS_NOEXEC | MS_NOSUID | MS_NODEV | MS_RDONLY, NULL}
+	};
 
 struct symlink default_symlinks[] = {
-		{"/proc/self/fd", "/dev/fd"},
-		{"/proc/self/fd/0", "/dev/stdin"},
-		{"/proc/self/fd/1", "/dev/stdout"},
-		{"/proc/self/fd/2", "/dev/stderr"},
-		{"/dev/pts/ptmx", "/dev/ptmx"}
-		};
+	{"/proc/self/fd", "/dev/fd"},
+	{"/proc/self/fd/0", "/dev/stdin"},
+	{"/proc/self/fd/1", "/dev/stdout"},
+	{"/proc/self/fd/2", "/dev/stderr"},
+	{"/dev/pts/ptmx", "/dev/ptmx"}
+	};
 
 static int
 pivot_root(const char *new_root, const char *put_old)
@@ -113,23 +113,23 @@ pivot_root(const char *new_root, const char *put_old)
  */
 void perform_pivot_root(int has_userns)
 {
-  int oldroot = open("/", O_DIRECTORY | O_RDONLY,0);
-  if(oldroot == -1)
-    printErr("open oldroot");
+	int oldroot = open("/", O_DIRECTORY | O_RDONLY,0);
+	if(oldroot == -1)
+		printErr("open oldroot");
 
-  int newroot = open(FILE_SYSTEM_PATH, O_DIRECTORY | O_RDONLY, 0);
-  if(newroot == -1)
-    printErr("open newroot");
+	int newroot = open(FILE_SYSTEM_PATH, O_DIRECTORY | O_RDONLY, 0);
+	if(newroot == -1)
+		printErr("open newroot");
 
-  /* Change to the new root so that the pivot_root actually acts on it. */
-  if(fchdir(newroot)==-1)
-    printErr("fchdir newroot");
+	/* Change to the new root so that the pivot_root actually acts on it. */
+	if(fchdir(newroot)==-1)
+		printErr("fchdir newroot");
 
-  if(pivot_root(".",".")==-1)
-    printErr("pivot_root");
+	if(pivot_root(".",".")==-1)
+		printErr("pivot_root");
 
-  if(fchdir(oldroot)==-1)
-    printErr("fchdir oldroot");
+	if(fchdir(oldroot)==-1)
+		printErr("fchdir oldroot");
 
   /* Make oldroot rslave to make sure our unmounts don't propagate to the
    * host (and thus bork the machine). We don't use rprivate because this is
@@ -137,26 +137,26 @@ void perform_pivot_root(int has_userns)
    * mount while a process in the host namespace are trying to operate on
    * something they think has no mounts (devicemapper in particular).
    */
-  if(mount("", ".", "", MS_SLAVE|MS_REC, "")==-1)
-    printErr("mount oldroot as slave");
+	if(mount("", ".", "", MS_SLAVE|MS_REC, "")==-1)
+		printErr("mount oldroot as slave");
 
-  /* Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd.
-   * Here we lost all the mounts point that we received from our parent when
-   * clone was called.
-   * We will see only the mount points of the container that has been prepared
-   * by prepare_rootfs(). */
-  if(umount2(".", MNT_DETACH)==-1)
-    printErr("unmount oldroot");
+	/* Preform the unmount. MNT_DETACH allows us to unmount /proc/self/cwd.
+	 * Here we lost all the mounts point that we received from our parent when
+	 * clone was called.
+	 * We will see only the mount points of the container that has been prepared
+	 * by prepare_rootfs() */
+	if(umount2(".", MNT_DETACH)==-1)
+		printErr("unmount oldroot");
 
-  close(newroot);
-  close(oldroot);
+	close(newroot);
+	close(oldroot);
 
-  /* Switch back to our shiny new root. */
-  chdir("/");
+	/* Switch back to our shiny new root. */
+	chdir("/");
 }
 
-void prepare_rootfs(int has_userns){
-
+void prepare_rootfs(int has_userns)
+{
 	int i;
 	char* base_path;
 	char* target_fs;
@@ -226,7 +226,7 @@ void prepare_rootfs(int has_userns){
 	*/
 
 	/* We setup console later */
-	for(i=0;i<DEFAULT_DEVS-1;i++){
+	for (i=0;i<DEFAULT_DEVS-1;i++) {
 		if(strcat(target_dev_path,default_devs[i].path) == NULL){
 			fprintf(stderr,"=> strcat() failed.\n");
 			exit(EXIT_FAILURE);
@@ -252,25 +252,26 @@ void prepare_rootfs(int has_userns){
   /* We assume that both stderr,stdin and stdout are linked to the same pty. */
   char* current_pts = ttyname(0);
 
-  if (strcat(target_dev_path,default_devs[i].path) == NULL) {
-	  fprintf(stderr,"=> strcat() failed.\n");
-	  exit(EXIT_FAILURE);
-  }
-  /* create target */
-  fp = fopen(target_dev_path,"a");
+	if (strcat(target_dev_path,default_devs[i].path) == NULL) {
+		fprintf(stderr,"=> strcat() failed.\n");
+		exit(EXIT_FAILURE);
+	}
+	/* create target */
+	fp = fopen(target_dev_path,"a");
 
-  if (fp == NULL) {
-	  fprintf(stderr,"=> console creation failed\n");
-	  exit(EXIT_FAILURE);
-  }
-  if (mount(current_pts,target_dev_path,"bind",MS_BIND | MS_PRIVATE,"uid=0,gid=0,mode=0600")==-1) {
-	  fprintf(stderr,"=> console bind failed\n");
-	  exit(EXIT_FAILURE);
-  }
-  fclose(fp);
+	if (fp == NULL) {
+		fprintf(stderr,"=> console creation failed\n");
+		exit(EXIT_FAILURE);
+	}
+	if (mount(current_pts,target_dev_path,"bind",MS_BIND | MS_PRIVATE,"uid=0,gid=0,mode=0600")==-1) {
+		fprintf(stderr,"=> console bind failed\n");
+		exit(EXIT_FAILURE);
+	}
+	fclose(fp);
 }
 
-int prepare_dev_fd() {
+int prepare_dev_fd()
+{
 	int i;
 	for (i=0;i<DEFAULT_SYMLINKS;i++) {
 		if (symlink(default_symlinks[i].path,default_symlinks[i].target) == -1) {
@@ -280,7 +281,8 @@ int prepare_dev_fd() {
 	}
 }
 
-char* get_rootfs() {
+char* get_rootfs()
+{
 	static char root_fs[PATH_MAX];
 	if (getcwd(root_fs,PATH_MAX) ==  NULL) {
 		fprintf(stderr,"=> getcwd() failed.\n");

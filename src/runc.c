@@ -72,7 +72,9 @@ int child_fn(void *args_par)
     * recursive bind mount operation is performed: all submounts under the
     * source subtree (other than unbindable mounts) are also bind mounted
     * at the corresponding location in the target subtree.*/
-    if (mount(FILE_SYSTEM_PATH,FILE_SYSTEM_PATH, "bind", MS_BIND | MS_REC, "") == -1)
+    if (mount(FILE_SYSTEM_PATH,FILE_SYSTEM_PATH,
+            "bind",
+            MS_BIND | MS_REC, "") == -1)
 	    printErr("mount-MS_BIND");
 
    /* Actually it is needed to mount everything we need before unmounting
@@ -174,11 +176,10 @@ void runc(struct runc_args *runc_arguments)
 		;
     
     /* add CLONE_NEWGROUP if required */
-    if (runc_arguments->resources != NULL) {
+    if (runc_arguments->resources) {
         clone_flags |= CLONE_NEWCGROUP;
         args.resources = runc_arguments->resources;
 
-        fprintf(stderr, "dentroooooooooooooooooooo\n");
         /* apply resource limitations */
         apply_cgroups(args.resources);
     }
