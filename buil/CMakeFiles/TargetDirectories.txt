@@ -1,0 +1,3 @@
+/home/davide/Understanding-containers/buil/CMakeFiles/rebuild_cache.dir
+/home/davide/Understanding-containers/buil/CMakeFiles/MyDocker.dir
+/home/davide/Understanding-containers/buil/CMakeFiles/edit_cache.dir
