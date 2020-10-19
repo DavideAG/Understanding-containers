@@ -40,27 +40,31 @@ tells us there are 3 system calls that make up the API:
 pivot_root is a Linux API that changes the root mount in the mount namespace of the
 calling process.
 
-## Cgroups
+## [Cgroups](https://en.wikipedia.org/wiki/Cgroups)
 Cgroups (control groups) is a Linux kernel feature that limits, accounts
 for, and isolates the resource usage (CPU, memory, disk I/O, network, etc...)
-of a collection of processes. Cgroups support has not yet been implemented in this
-repository. Work is still in progress
+of a collection of processes. <br>There are two different versions of cgroups:
+- [version 1](https://www.kernel.org/doc/Documentation/cgroup-v1/cgroups.txt) <br>
+originally written by Paul Menage and Rohit Seth, are based on a set of hierarchies. Each of them is composed by a set of cgroups arranged in a tree. Each hierarchy has an instance of the cgroup virtual filesystem associated with it. Each hierarchy is a partition of all tasks in the system. 
+- [version 2](https://www.kernel.org/doc/Documentation/cgroup-v2.txt) <br>
+Based on a single process hierarchy where cgroups form a tree structure and every process in the system belongs to one and only one cgroup. All threads of a process belong to the same cgroup.
 
 ## Dependencies
-In order to compile this tool is necessary to install the following libraries:
+In order to compile `Understanding-containers` is necessary to install the following libraries:
+ - `libcap-dev` 
+ - `seccomp-dev`
+
 ```bash
 ~$  sudo apt install libcap-dev seccomp-dev -y
 ```
 
-## Usage
+## Compile
 To create your homemade container you will need to compile the source code in
-the `"src"` directory but first you have to use netsetgo_install.sh inside the
-tools folder. I personally recommend using [cmake](https://cmake.org/)
+the `"src"` directory. I personally recommend using [cmake](https://cmake.org/)
 to do this. Move to the `Understanding-containers` directory and then run the
 following commands
 
 ```bash
-~$  cd tools && sudo ./netsetgo_install.sh && cd ..
 ~$  mkdir build && cd build
 ~$  cmake .. && make -j $(getconf _NPROCESSORS_ONLN)
 ```
@@ -68,7 +72,6 @@ following commands
 Now in the build folder you'll have the executable ready to run!
 Here the help of the tool:
 ```bash
-~$ sudo ./MyDocker -h
 Usage: sudo ./MyDocker <options> <entrypoint>
 
 <options> should be:

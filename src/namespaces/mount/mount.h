@@ -27,29 +27,12 @@
  * starts so that the requested root filesystem is ready for when it does.
  */
 
+ 
 /* mounting the container file system -> ubuntu-fs */
 void perform_pivot_root(int has_userns);
 
 void prepare_rootfs(int has_userns);
 
-/* /proc fs mount */
-int mount_proc();
-
-/* /sys fs mount */
-int mount_sysfs();
-
-/* /dev mount */
-int mount_dev();
-
-/* /dev/pts mount */
-int mount_dev_pts();
-
-/* /dev/shm mount */
-int mount_dev_shm();
-
-/*/dev/mqueue mount */
-int mount_dev_mqueue();
-
-int create_devices();
-
 int prepare_dev_fd();
+
+char* get_rootfs();

@@ -6,8 +6,8 @@
 #include "../../helpers/helpers.h"
 #include "../../../config.h"
 
-struct cgrp_control **controller = NULL;	/* cgroup controller array */
-size_t n_controller = 0;					/* size of the controller array */
+struct cgrp_control **controller = NULL;    /* cgroup controller array */
+size_t n_controller = 0;                    /* size of the controller array */
 
 /* initialize the struct cgroup_args */
 void init_resources(bool cgroup_flag,
@@ -238,7 +238,6 @@ struct cgrp_control *alloc_ctr_blkio(char *io_weight)
     return ctr_blkio;
 }
 
-
 /* create a new cgroup controller */
 struct cgrp_control **setup_cgrp_controller(
     struct cgroup_args *cgroup_arguments,
@@ -375,20 +374,27 @@ void setting_cgroups()
     fprintf(stderr, "done.\n");
 }
 
-/* This operation must be done
- * in order to avoid that the containered process will use all the fd
- * that are available for the selected user */
+/* Apply a limit on the maximum number of file descriptor of the process */
 void set_fd_hard_limit()
 {
-    struct rlimit resource_limit;
-    resource_limit.rlim_max = FD_COUNT;
-    resource_limit.rlim_max = FD_COUNT;
+    struct rlimit *resource_limit = NULL;
+
+    resource_limit = (struct rlimit *) malloc(sizeof(struct rlimit));
+
+    if (!resource_limit) {
+        printErr("malloc at set_fd_hard_limit");
+    }
+
+    resource_limit->rlim_max = FD_COUNT;
+    resource_limit->rlim_max = FD_COUNT;
 
     fprintf(stderr, "=> setting rlimit...");
 
-	if (setrlimit(RLIMIT_NOFILE, &resource_limit)) {
+	if (setrlimit(RLIMIT_NOFILE, resource_limit)) {
         printErr("setrlimit");
 	}
+
+    free(resource_limit);
 
 	fprintf(stderr, "done.\n");
 }
@@ -460,6 +466,7 @@ void apply_cgroups(struct cgroup_args *cgroup_arguments)
     /* The hostname will be 'mydocker', actually it is static */
     setting_cgroups();
 
+    //TODO: actually not working
     /* hard limit on the number of file descriptor. */
     //set_fd_hard_limit();
 }
