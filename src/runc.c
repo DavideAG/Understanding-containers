@@ -95,6 +95,7 @@ int child_fn(void *args_par)
     * the real host root, so drop some capablities */
     drop_caps();
 
+    /* disallowing system calls using seccomp */
     sys_filter();
       
     if (execvp(args->command[0], args->command) != 0)
