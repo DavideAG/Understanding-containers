@@ -29,7 +29,7 @@ int child_fn(void *args_par)
     struct clone_args *args = (struct clone_args *) args_par;
     char ch;
     
-    if(args->has_userns){
+    if (args->has_userns) {
 	    /* We are the consumer*/
 	    close(args->sync_uid_gid_map_fd[1]);
 
@@ -38,16 +38,16 @@ int child_fn(void *args_par)
 		    fprintf(stderr, "Failure in child: read from pipe returned != 0\n");
 		    exit(EXIT_FAILURE);
 	    }
-	   close(args->sync_uid_gid_map_fd[0]);
+	    close(args->sync_uid_gid_map_fd[0]);
            
-	   /* UID 0 maps to UID 1000 outside. Ensure that the exec process
-            * will run as UID 0 in order to drop its privileges */
-    	   if (setresgid(0,0,0) == -1)
-		    printErr("Failed to setgid.\n");
-	   if (setresuid(0,0,0) == -1)
-		    printErr("Failed to setuid.\n");
+        /* UID 0 maps to UID 1000 outside. Ensure that the exec process
+         * will run as UID 0 in order to drop its privileges */
+        if (setresgid(0,0,0) == -1)
+            printErr("setgid");
+        if (setresuid(0,0,0) == -1)
+            printErr("setuid");
 
-	   fprintf(stderr,"=> setuid and seguid done.\n");	  
+        fprintf(stderr,"=> setuid and seguid done\n");	  
     }
 
     /* setting new hostname */

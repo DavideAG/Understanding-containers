@@ -11,7 +11,6 @@
 int main(int argc, char *argv[])
 {
 	int option = 0;
-	char **child_entrypoint;
 	bool empty = false;
 	bool runall = false;
 	bool pids_flag = false;
@@ -24,6 +23,7 @@ int main(int argc, char *argv[])
 	long max_weight = 0;
 	long cpu_shares = 0;
 	long memory_limit = 0;
+	char **child_entrypoint;
 	struct runc_args *runc_arguments = NULL;
 	struct cgroup_args *cgroup_arguments = NULL;
 
@@ -185,9 +185,9 @@ int main(int argc, char *argv[])
 
 usage:
 	printf("Usage: sudo ./MyDocker <options> <entrypoint>\n");
-    printf("\n");
-    printf("<options> should be:\n");
-    printf("\t- a\trun all namespaces without the user namespace\n");
+	printf("\n");
+	printf("<options> should be:\n");
+	printf("\t- a\trun all namespaces without the user namespace\n");
 	printf("\t- U\trun a user namespace using unprivileged container\n");
 	printf("\t- c\tcgrops used to limit resources.\n\t\tThis command must "
 	"be chained with at least one of:\n");

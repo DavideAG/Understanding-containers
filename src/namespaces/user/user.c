@@ -19,13 +19,13 @@ void map_uid_gid(pid_t child_pid) {
     char map_buf[MAX_BUF_SIZE];
 
     snprintf(map_path, PATH_MAX, "/proc/%ld/uid_map", (long) child_pid);
-    snprintf(map_buf, MAX_BUF_SIZE, "0 1000 1");
+    snprintf(map_buf, MAX_BUF_SIZE, "0 100000 65536");
     uid_map = map_buf;
     update_map(uid_map, map_path);
 
     proc_setgroups_write(child_pid, "deny");
     snprintf(map_path, PATH_MAX, "/proc/%ld/gid_map",(long) child_pid);
-    snprintf(map_buf, MAX_BUF_SIZE, "0 1000 1");
+    snprintf(map_buf, MAX_BUF_SIZE, "0 100000 65536");
     gid_map = map_buf;
     update_map(gid_map, map_path);
 }
