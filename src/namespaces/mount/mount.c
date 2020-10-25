@@ -158,10 +158,10 @@ void perform_pivot_root(int has_userns)
 void prepare_rootfs(int has_userns)
 {
 	int i;
-	char* base_path;
-	char* target_fs;
-	FILE* fp;	 
-	char* target_dev_path;
+	char *base_path;
+	char *target_fs;
+	FILE *fp;	 
+	char *target_dev_path;
 
 	base_path = get_rootfs();
     if (base_path == NULL) {
@@ -179,101 +179,106 @@ void prepare_rootfs(int has_userns)
 			fprintf(stderr,"=> mkdir %s failed.\n",default_fs[i].path);
 			exit(EXIT_FAILURE);
 		}
-		if (mount("none",target_fs,default_fs[i].type,default_fs[i].flags,default_fs[i].data) == -1) {
+		if (mount("none",target_fs,default_fs[i].type,default_fs[i].flags,
+				default_fs[i].data) == -1) {
 			fprintf(stderr,"=> mount %s failed.\n",default_fs[i].path);
 			exit(EXIT_FAILURE);
 		}
 		target_fs[strlen(target_fs)-strlen(default_fs[i].path)]='\0';		
 	}
 
-  target_dev_path  = base_path;
-  
+	/* mkdnod available for a rotfull container */
+	target_dev_path  = base_path;  
 	if (!has_userns) {
-		for (i=0;i<DEFAULT_DEVS-1;i++) {
-			if (strcat(target_dev_path,default_devs[i].path) == NULL) {
+		for (i=0; i<DEFAULT_DEVS-1; i++) {
+			if (strcat(target_dev_path, default_devs[i].path) == NULL) {
+				fprintf(stderr, "=> strcat() failed.\n");
+				exit(EXIT_FAILURE);
+			}
+			if (mknod(target_dev_path, default_devs[i].flags,
+				makedev(default_devs[i].major, default_devs[i].minor)) == -1) {
+				fprintf(stderr, "=> mknod %s failed.\n", default_devs[i].path);
+				exit(EXIT_FAILURE);
+			}
+			target_dev_path[strlen(target_dev_path)-strlen(default_devs[i].path)]
+				= '\0';
+		}
+	} else {
+		/* Set up devices for unpivileged container.
+		*
+		* One notable restriction is the inability to use the mknod command. 
+		* Permission is denied for device creation within the container when 
+		* run by the root user.
+		* Why?
+		* Unprivileged containers have all capabilities, including CAP_MKNOD, it
+		* just so happens that the kernel check for mknod will not allow root in
+		* an unprivileged container to run mknod, no matter its capabilities.
+		*
+		* //TODO: possible solutions
+		* 1 Because you are unprivileged, you cannot create /dev/random. All you
+		*   can do is to bind mount it from the host. So it gets the same
+		*	uid/gid/perms as on the host. 
+		*   You can set it up that way yourself by becoming root on the host,
+		*	 mknod'ing the device in the container's /dev, and chowning it to
+		*	 your container root uid.
+		*   ==> https://lxc-users.linuxcontainers.narkive.com/5MX4xx6N/
+		*   	  dev-random-problem-with-unprivileged-minimal-containers
+		*   
+		*   The device can be created just as a dummy file.
+		*   ==> https://unix.stackexchange.com/questions/538594/
+		*   	  how-to-make-dev-inside-linux-namespaces
+		*/
+
+		/* We setup console later */
+		for (i=0; i<DEFAULT_DEVS-1; i++) {
+			if(strcat(target_dev_path, default_devs[i].path) == NULL){
 				fprintf(stderr,"=> strcat() failed.\n");
 				exit(EXIT_FAILURE);
 			}
-			if (mknod(target_dev_path, default_devs[i].flags, makedev(default_devs[i].major,default_devs[i].minor)) == -1) {
-				fprintf(stderr,"=> mknod %s failed.\n",default_devs[i].path);
+
+			fp = fopen(target_dev_path, "a");
+
+			if (fp == NULL) {
+				fprintf(stderr, "=> %s device creation failed\n",
+					default_devs[i].path);
 				exit(EXIT_FAILURE);
 			}
-			target_dev_path[strlen(target_dev_path)-strlen(default_devs[i].path)]='\0';
-		}
-	} else {
-	/* Set up devices for unpivileged container.
-	*
-	* One notable restriction is the inability to use the mknod command. 
-	* Permission is denied for device creation within the container when 
-	* run by the root user.
-	* Why?
-	* Unprivileged containers have all capabilities, including CAP_MKNOD, it
-	* just so happens that the kernel check for mknod will not allow root in
-	* an unprivileged container to run mknod, no matter its capabilities.
-	*
-	* //TODO: possible solutions
-	* 1 Because you are unprivileged, you cannot create /dev/random. All you
-	*   can do is to bind mount it from the host. So it gets the same uid/gid/perms
-	*   as on the host. 
-	*   You can set it up that way yourself by becoming root on the host, mknod'ing
-	*   the device in the container's /dev, and chowning it to your container root uid.
-	*   ==> https://lxc-users.linuxcontainers.narkive.com/5MX4xx6N/
-	*   	  dev-random-problem-with-unprivileged-minimal-containers
-	*   
-	*   The device can be created just as a dummy file.
-	*   ==> https://unix.stackexchange.com/questions/538594/
-	*   	  how-to-make-dev-inside-linux-namespaces
-	*/
-
-	/* We setup console later */
-	for (i=0;i<DEFAULT_DEVS-1;i++) {
-		if(strcat(target_dev_path,default_devs[i].path) == NULL){
-			fprintf(stderr,"=> strcat() failed.\n");
-			exit(EXIT_FAILURE);
-		}
-
-		fp = fopen(target_dev_path,"a");
-
-		if(fp == NULL){
-			fprintf(stderr,"=> %s device creation failed\n",default_devs[i].path);
-			exit(EXIT_FAILURE);
-		}else{
-			if(mount(default_devs[i].path,target_dev_path,"bind",MS_BIND | MS_PRIVATE,"uid=0,gid=0,mode=0666") == -1){
-				fprintf(stderr,"=>%s mount failed\n",default_devs[i].path);
+			if(mount(default_devs[i].path,target_dev_path, "bind",
+					MS_BIND | MS_PRIVATE, "uid=0,gid=0,mode=0666") == -1) {
+				fprintf(stderr,"=>%s mount failed\n", default_devs[i].path);
 				exit(EXIT_FAILURE);
 			}
+			fclose(fp);
+			target_dev_path[strlen(target_dev_path)-strlen(default_devs[i].path)]
+				= '\0';
 		}
-		fclose(fp);
-		target_dev_path[strlen(target_dev_path)-strlen(default_devs[i].path)]='\0';
 	}
-  }
-  
 
-  /* We assume that both stderr,stdin and stdout are linked to the same pty. */
-  char* current_pts = ttyname(0);
-
-	if (strcat(target_dev_path,default_devs[i].path) == NULL) {
-		fprintf(stderr,"=> strcat() failed.\n");
+	/* We assume that both stderr, stdin and stdout are linked to the same pty */
+	char *current_pts = ttyname(0);
+	if (strcat(target_dev_path, default_devs[i].path) == NULL) {
+		fprintf(stderr, "=> strcat() failed.\n");
 		exit(EXIT_FAILURE);
 	}
 	/* create target */
-	fp = fopen(target_dev_path,"a");
+	fp = fopen(target_dev_path, "a");
 
 	if (fp == NULL) {
-		fprintf(stderr,"=> console creation failed\n");
+		fprintf(stderr, "=> console creation failed\n");
 		exit(EXIT_FAILURE);
 	}
-	if (mount(current_pts,target_dev_path,"bind",MS_BIND | MS_PRIVATE,"uid=0,gid=0,mode=0600")==-1) {
-		fprintf(stderr,"=> console bind failed\n");
+	if (mount(current_pts, target_dev_path, "bind",
+			MS_BIND | MS_PRIVATE, "uid=0,gid=0,mode=0600") == -1) {
+		fprintf(stderr, "=> console bind failed\n");
 		exit(EXIT_FAILURE);
 	}
+
 	fclose(fp);
 }
 
 int prepare_dev_fd()
 {
-	int i;
-	for (i=0;i<DEFAULT_SYMLINKS;i++) {
+	for (int i=0; i<DEFAULT_SYMLINKS; i++) {
 		if (symlink(default_symlinks[i].path,default_symlinks[i].target) == -1) {
 			fprintf(stderr,"=> Symlink %s failed.\n",default_symlinks[i].target);
 			exit(EXIT_FAILURE);
@@ -281,18 +286,19 @@ int prepare_dev_fd()
 	}
 }
 
-char* get_rootfs()
+char *get_rootfs()
 {
 	static char root_fs[PATH_MAX];
+	
 	if (getcwd(root_fs,PATH_MAX) ==  NULL) {
 		fprintf(stderr,"=> getcwd() failed.\n");
 		return NULL;
 	}
-	if (memmove(&root_fs[strlen(root_fs)-strlen("build")],
-			"root_fs",sizeof("root_fs")) == NULL ) {
-
-		fprintf(stderr,"=> memmove() failed.\n");
+	if (memmove(&root_fs[strlen(root_fs) - strlen("build")],
+			"root_fs", sizeof("root_fs")) == NULL ) {
+		fprintf(stderr, "=> memmove() failed.\n");
 		return NULL;
 	}
+
 	return root_fs;
 }

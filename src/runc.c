@@ -29,7 +29,7 @@ int child_fn(void *args_par)
     struct clone_args *args = (struct clone_args *) args_par;
     char ch;
     
-    if(args->has_userns){
+    if (args->has_userns) {
 	    /* We are the consumer*/
 	    close(args->sync_uid_gid_map_fd[1]);
 
@@ -38,16 +38,16 @@ int child_fn(void *args_par)
 		    fprintf(stderr, "Failure in child: read from pipe returned != 0\n");
 		    exit(EXIT_FAILURE);
 	    }
-	   close(args->sync_uid_gid_map_fd[0]);
+	    close(args->sync_uid_gid_map_fd[0]);
            
-	   /* UID 0 maps to UID 1000 outside. Ensure that the exec process
-            * will run as UID 0 in order to drop its privileges */
-    	   if (setresgid(0,0,0) == -1)
-		    printErr("Failed to setgid.\n");
-	   if (setresuid(0,0,0) == -1)
-		    printErr("Failed to setuid.\n");
+        /* UID 0 maps to UID 1000 outside. Ensure that the exec process
+         * will run as UID 0 in order to drop its privileges */
+        if (setresgid(0,0,0) == -1)
+            printErr("setgid");
+        if (setresuid(0,0,0) == -1)
+            printErr("setuid");
 
-	   fprintf(stderr,"=> setuid and seguid done.\n");	  
+        fprintf(stderr,"=> setuid and seguid done\n");	  
     }
 
     /* setting new hostname */
@@ -95,6 +95,7 @@ int child_fn(void *args_par)
     * the real host root, so drop some capablities */
     drop_caps();
 
+    /* disallowing system calls using seccomp */
     sys_filter();
       
     if (execvp(args->command[0], args->command) != 0)
@@ -172,10 +173,9 @@ void runc(struct runc_args *runc_arguments)
                 CLONE_NEWUTS 	|
                 CLONE_NEWIPC 	|
                 CLONE_NEWPID 	|
-                CLONE_NEWNET
-		;
+                CLONE_NEWNET;
     
-    /* add CLONE_NEWGROUP if required */
+    /* CLONE_NEWGROUP if required */
     if (runc_arguments->resources) {
         clone_flags |= CLONE_NEWCGROUP;
         args.resources = runc_arguments->resources;
@@ -184,11 +184,12 @@ void runc(struct runc_args *runc_arguments)
         apply_cgroups(args.resources);
     }
 
+    /* CLONE_NEWUSER if required */
     if (runc_arguments->has_userns)
 	    clone_flags |= CLONE_NEWUSER;
 
     child_pid = clone(child_fn, child_stack + STACK_SIZE,
-            	      clone_flags | SIGCHLD, &args);
+                        clone_flags | SIGCHLD, &args);
 
     if (child_pid < 0) {
         free_cgroup_resources();
