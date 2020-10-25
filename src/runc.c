@@ -173,10 +173,9 @@ void runc(struct runc_args *runc_arguments)
                 CLONE_NEWUTS 	|
                 CLONE_NEWIPC 	|
                 CLONE_NEWPID 	|
-                CLONE_NEWNET
-		;
+                CLONE_NEWNET;
     
-    /* add CLONE_NEWGROUP if required */
+    /* CLONE_NEWGROUP if required */
     if (runc_arguments->resources) {
         clone_flags |= CLONE_NEWCGROUP;
         args.resources = runc_arguments->resources;
@@ -185,11 +184,12 @@ void runc(struct runc_args *runc_arguments)
         apply_cgroups(args.resources);
     }
 
+    /* CLONE_NEWUSER if required */
     if (runc_arguments->has_userns)
 	    clone_flags |= CLONE_NEWUSER;
 
     child_pid = clone(child_fn, child_stack + STACK_SIZE,
-            	      clone_flags | SIGCHLD, &args);
+                        clone_flags | SIGCHLD, &args);
 
     if (child_pid < 0) {
         free_cgroup_resources();
