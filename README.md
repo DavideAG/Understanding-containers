@@ -111,23 +111,30 @@ When you want you can finish your container killing the process of his bash `exi
 
 ## Tree of the directors of this repository
 The folders in this repository are:
-
+	
+	├── cmake
 	├── root_fs
 	├── src
+	│ 	├── capabilities
 	│ 	├── helpers
-	│ 	└── namespaces
-	│ 	    ├── mount
-	│ 	    ├── network
-	│ 	    └── user
+	│ 	├── namespaces
+	│   │  ├── cgroup
+	│   │  ├── mount
+	│ 	│  ├── network
+	│ 	│  └── user
+	│ 	└── seccomp 
 	└── tools
 
  - root_fs	[the root filesystem where your container will run]
  - [src](https://github.com/DavideAG/Understanding-containers/tree/master/src)	[the source folder]
+ - [capabilities](https://github.com/DavideAG/Understanding-containers/tree/master/src/capabilities) [capabilities dropped for the new namespace]
  - [helpers](https://github.com/DavideAG/Understanding-containers/tree/master/src/helpers)	[helpers files]
  - [namespaces](https://github.com/DavideAG/Understanding-containers/tree/master/src/namespaces) [support for various namespaces]
+ - [cgroup](https://github.com/DavideAG/Understanding-containers/tree/master/src/namespaces/cgroup) [control group support]
  - [mount](https://github.com/DavideAG/Understanding-containers/tree/master/src/namespaces/mount)	[mount namespace reference folder]
  - [network](https://github.com/DavideAG/Understanding-containers/tree/master/src/namespaces/network)	[network namespace reference folder]
  - [user](https://github.com/DavideAG/Understanding-containers/tree/master/src/namespaces/user)	[user namespace reference folder]
+ - [seccomp](https://github.com/DavideAG/Understanding-containers/tree/master/src/seccomp) [seccomp configuration to block some syscalls]
  - [tools](https://github.com/DavideAG/Understanding-containers/tree/master/tools)	[tools folders]
 
 Each folder (except root_fs) contains a more detailed instruction file called
