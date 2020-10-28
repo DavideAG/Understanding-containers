@@ -15,13 +15,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "runc.h"
+#include "../config.h"
 #include "helpers/helpers.h"
 #include "namespaces/user/user.h"
 #include "namespaces/mount/mount.h"
+#include "seccomp/seccomp_config.h"
 #include "namespaces/cgroup/cgroup.h"
+#include "capabilities/capabilities.h"
 #include "namespaces/network/network.h"
-#include "../config.h"
-#include "./seccomp/seccomp_config.h"
 
 
 int child_fn(void *args_par)
@@ -91,6 +92,7 @@ int child_fn(void *args_par)
     perform_pivot_root(args->has_userns);
 
     prepare_dev_fd();
+
    /* The root user inside the container must have less privileges than
     * the real host root, so drop some capablities */
     drop_caps();

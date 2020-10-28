@@ -22,6 +22,9 @@ AUX_SOURCE_DIRECTORY(./src/namespaces/cgroup/ MyDocker_SRC_namespaces_cgroup)
 # Set seccomp source directory
 AUX_SOURCE_DIRECTORY(./src/seccomp/ MyDocker_SRC_seccomp)
 
+# Set capabilities source directory
+AUX_SOURCE_DIRECTORY(./src/capabilities MyDocker_SRC_capabilities)
+
 # Create executable
 ADD_EXECUTABLE(
 	MyDocker
@@ -32,6 +35,7 @@ ADD_EXECUTABLE(
 	${MyDocker_SRC_namespaces_network}
 	${MyDocker_SRC_namespaces_cgroup}
 	${MyDocker_SRC_seccomp}
+	${MyDocker_SRC_capabilities}
 )
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
