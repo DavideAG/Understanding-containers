@@ -16,14 +16,12 @@ void sys_filter()
 	/* Intialize filter contex.
 	 *
 	 * - SCMP_ACT_ALLOW : The seccomp filter will have no effect on the thread calling
-         *                    the syscall if it does not match any of the configured seccomp
-         *                    filter rules.       
-         */
+	 *                    the syscall if it does not match any of the configured seccomp
+	 *                    filter rules.       
+	 */
 	ctx = seccomp_init(SCMP_ACT_ALLOW);
 
-	
-	
-	if (ctx == NULL){
+	if (ctx == NULL) {
 		fprintf(stderr,"=> ERR: seccomp_init.\n");
 		seccomp_release(ctx);
 		exit(EXIT_FAILURE);
@@ -51,21 +49,30 @@ void sys_filter()
 
 	//SCMP_ACT_ERRNO(EPERM) The effect of SCMP_ACT_ERRNO is to cause a Permission Denied error
 	
-	if(!(
-	         seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(chmod), 1, SCMP_A1(SCMP_CMP_MASKED_EQ, S_ISUID, S_ISUID))
-	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(chmod), 1, SCMP_A1(SCMP_CMP_MASKED_EQ, S_ISGID, S_ISGID))
-	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fchmod), 1, SCMP_A1(SCMP_CMP_MASKED_EQ, S_ISUID, S_ISUID))
-	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fchmod), 1, SCMP_A1(SCMP_CMP_MASKED_EQ, S_ISGID, S_ISGID))
-	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fchmodat), 1, SCMP_A2(SCMP_CMP_MASKED_EQ, S_ISUID, S_ISUID))
-	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fchmodat), 1, SCMP_A2(SCMP_CMP_MASKED_EQ, S_ISGID, S_ISGID))
-	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(unshare), 1, SCMP_A0(SCMP_CMP_MASKED_EQ, CLONE_NEWUSER, CLONE_NEWUSER))
-	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1, SCMP_A0(SCMP_CMP_MASKED_EQ, CLONE_NEWUSER, CLONE_NEWUSER))
-	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1, SCMP_A1(SCMP_CMP_MASKED_EQ, TIOCSTI, TIOCSTI))
+	if (!(
+	         seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(chmod), 1,
+			 					SCMP_A1(SCMP_CMP_MASKED_EQ, S_ISUID, S_ISUID))
+	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(chmod), 1,
+		  						SCMP_A1(SCMP_CMP_MASKED_EQ, S_ISGID, S_ISGID))
+	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fchmod), 1,
+		  						SCMP_A1(SCMP_CMP_MASKED_EQ, S_ISUID, S_ISUID))
+	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fchmod), 1,
+		  						SCMP_A1(SCMP_CMP_MASKED_EQ, S_ISGID, S_ISGID))
+	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fchmodat), 1,
+		  						SCMP_A2(SCMP_CMP_MASKED_EQ, S_ISUID, S_ISUID))
+	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(fchmodat), 1,
+		  						SCMP_A2(SCMP_CMP_MASKED_EQ, S_ISGID, S_ISGID))
+	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(unshare), 1,
+		  						SCMP_A0(SCMP_CMP_MASKED_EQ, CLONE_NEWUSER, CLONE_NEWUSER))
+	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(clone), 1,
+		  						SCMP_A0(SCMP_CMP_MASKED_EQ, CLONE_NEWUSER, CLONE_NEWUSER))
+	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ioctl), 1,
+		  						SCMP_A1(SCMP_CMP_MASKED_EQ, TIOCSTI, TIOCSTI))
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(keyctl), 0)
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0)
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(request_key), 0)
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ptrace), 0)
-	      /*From docker default seccomp policies*/
+	      /* From docker default seccomp policies */
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(acct), 0)
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(add_key), 0)
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(adjtimex), 0)
@@ -118,21 +125,23 @@ void sys_filter()
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(ustat), 0)
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(vm86), 0)
 	      || seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(vm86old), 0)
-	   )){
-		         /* Successfully added filter's rules. Now load the filter into the Kernel. */
-			 int lv = seccomp_load(ctx);
-		         if(lv<0){
-			   fprintf(stderr,"=> ERR: seccomp_load failed.\n");
-			   seccomp_release(ctx);
-	       		   exit(EXIT_FAILURE);		
-			 }
-	     }else{
-		      fprintf(stderr,"=> ERR: seccomp_rule_add failed.\n");
-		      seccomp_release(ctx);
-	       	      exit(EXIT_FAILURE);		
-	     }
+	  )) {
+		    /* Successfully added filter's rules.
+			   Now load the filter into the Kernel. */
+			int lv = seccomp_load(ctx);
+		    
+			if (lv < 0) {
+				fprintf(stderr,"=> ERR: seccomp_load failed.\n");
+			  	seccomp_release(ctx);
+				exit(EXIT_FAILURE);		
+			}
+
+		} else {
+			fprintf(stderr,"=> ERR: seccomp_rule_add failed.\n");
+			seccomp_release(ctx);
+			exit(EXIT_FAILURE);		
+		}
 
 	seccomp_release(ctx);
 	fprintf(stderr,"=> syscall filtering done.\n");
-
 }

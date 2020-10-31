@@ -27,12 +27,12 @@ void prepare_netns(int cmd_pid)
     move_if_to_pid_netns(sock_fd, vpeer, child_netns);
 
     if (setns(child_netns, CLONE_NEWNET))
-        printf("Failed to setns for command at pid %d: %m\n", cmd_pid);
+        printErr("setns");
 
     if_up(vpeer, vpeer_addr, netmask);
 
     if (setns(mynetns, CLONE_NEWNET))
-        printf("Failed to restore previous net namespace: %m\n");
+        printErr("restore previous net namespace");
 
     close(sock_fd);
 }
