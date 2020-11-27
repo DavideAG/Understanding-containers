@@ -55,16 +55,16 @@ int child_fn(void *args_par)
     set_container_hostname();
 
     /* Be sure umount events are not propagated to the host. */
-    if(mount("","/","", MS_SLAVE | MS_REC, "") == -1)
-	    printErr("mount failed");
+    //if(mount("","/","", MS_SLAVE | MS_REC, "") == -1)
+    //	    printErr("mount failed");
 
    /* Make parent mount private to make sure following bind mount does
     * not propagate in other namespaces. Also it will help with kernel
     * check pass in pivot_root. (IS_SHARED(new_mnt->mnt_parent))
     * link1) https://bugzilla.redhat.com/show_bug.cgi?id=1361043 
     * link2) check prepareRoot() function in runC/rootfs_linux_go */
-    if (mount("", "/", "", MS_PRIVATE, "") == 1)
-	    printErr("mount-MS_PRIVATE");
+    if (mount(NULL, "/", NULL, MS_REC | MS_PRIVATE, "") == -1)
+    	    printErr("mount-MS_PRIVATE");
  
    /* Ensure that 'new_root' is a mount point. 
     * By default, when a directory is bind mounted, only that directory is
@@ -73,9 +73,8 @@ int child_fn(void *args_par)
     * recursive bind mount operation is performed: all submounts under the
     * source subtree (other than unbindable mounts) are also bind mounted
     * at the corresponding location in the target subtree.*/
-    if (mount(FILE_SYSTEM_PATH,FILE_SYSTEM_PATH,
-            "bind",
-            MS_BIND | MS_REC, "") == -1)
+
+    if (mount(FILE_SYSTEM_PATH,FILE_SYSTEM_PATH, "bind", MS_BIND | MS_REC, "") == -1)
 	    printErr("mount-MS_BIND");
 
    /* Actually it is needed to mount everything we need before unmounting
@@ -99,7 +98,7 @@ int child_fn(void *args_par)
 
     /* disallowing system calls using seccomp */
     //sys_filter();
-      
+
     if (execvp(args->command[0], args->command) != 0)
         printErr("command exec failed");
 

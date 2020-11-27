@@ -15,7 +15,7 @@ struct clone_args {
    char **command;                /* The command table that will be executed */
    size_t command_size;           /* lenght of the command table */
    struct cgroup_args *resources; /* cgroups resources limitations structure */
-   int has_userns;         		  /* create new USERNS or not */
+   int has_userns;                /* create new USERNS or not */
 };
 
 /* create and run a new containered process */
