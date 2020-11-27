@@ -155,7 +155,6 @@ void perform_pivot_root(int has_userns){
 
   /* Switch back to our shiny new root. */
   chdir("/");
-
 }
 
 void prepare_rootfs(int has_userns){

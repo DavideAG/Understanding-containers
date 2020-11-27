@@ -46,6 +46,12 @@ for, and isolates the resource usage (CPU, memory, disk I/O, network, etc...)
 of a collection of processes. Cgroups support has not yet been implemented in this
 repository. Work is still in progress
 
+## Dependencies
+In order to compile this tool is necessary to install the following libraries:
+```bash
+~$  sudo apt install libcap-dev seccomp-dev -y
+```
+
 ## Usage
 To create your homemade container you will need to compile the source code in
 the `"src"` directory but first you have to use netsetgo_install.sh inside the
@@ -70,7 +76,7 @@ Usage: sudo ./MyDocker <options> <entrypoint>
 	- c	cgrops used to limit resources.
 		This command must can be chained with at least one of:
 		- M <memory_limit> 				[1-4294967296]	default: 1073741824 (1GB)
-		- C <percentage_of_cpu_shares> 	[1-100]			default: 25
+		- C <percentage_of_cpu_shares> 			[1-100]			default: 25
 		- P <max_pids> 					[10-32768]		default: 64
 		- I <io_weighht> 				[10-1000]		default: 10
 ```

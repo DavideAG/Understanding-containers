@@ -10,16 +10,18 @@ trigger:
 #  vmImage: 'ubuntu-latest'
 
 jobs:
-- job: Build
-  pool:
-    vmImage: 'ubuntu-latest'
-  steps:
-  - bash: |
-      pwd
-      mkdir build
-      cd build
-      cmake ..
-      make -j $(getconf _NPROCESSORS_ONLN)
+  - job: Build
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      - bash: |
+          sudo apt install libcap-dev -y
+      - bash: |
+          pwd
+          mkdir build
+          cd build
+          cmake ..
+          make -j $(getconf _NPROCESSORS_ONLN)
 
 #  - task: CMake@1
 #    inputs:
