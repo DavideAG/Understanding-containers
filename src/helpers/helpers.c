@@ -4,6 +4,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <sched.h>
+#include <libiptc/libiptc.h>
+#include <linux/netfilter/nf_nat.h>
+#include <arpa/inet.h>
 #include "helpers.h"
 
 
@@ -311,4 +314,299 @@ void get_child_entrypoint(int optind,
     {
         (*child_entrypoint)[index - optind] = strdup(arguments[index]);
     }
+}
+
+int
+masquerade()
+{
+    struct xtc_handle *h = iptc_init("nat");
+	int           result = 0;
+	if (!h) {
+		printf( "error condition  %s\n", iptc_strerror(errno));
+		return -1;
+	}
+
+	unsigned int targetOffset = XT_ALIGN(sizeof(struct ipt_entry));
+	unsigned int totalLen     = targetOffset + XT_ALIGN(sizeof(struct xt_entry_target))
+		+ XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat));
+
+	struct ipt_entry* e = (struct ipt_entry *)calloc(1, totalLen);
+	if(e == NULL) {
+		printf("calloc failure :%s\n", strerror(errno));
+		return -1;
+	}
+
+	e->target_offset = targetOffset;
+	e->next_offset   = totalLen;
+	strncpy(e->ip.outiface, "eth0", strlen("eth0") + 1);
+	unsigned int ip, mask;
+	inet_pton (AF_INET, "10.1.1.0", &ip);
+	inet_pton (AF_INET, "255.255.255.0", &mask);
+	e->ip.src.s_addr  = ip;
+	e->ip.smsk.s_addr = mask;
+
+	struct xt_entry_target* target = (struct xt_entry_target  *) e->elems;
+	target->u.target_size          = XT_ALIGN(sizeof(struct xt_entry_target))
+		+ XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat));
+
+	strncpy(target->u.user.name, "MASQUERADE", strlen("MASQUERADE") + 1);
+	target->u.user.revision = 0;
+	struct nf_nat_ipv4_multi_range_compat* masquerade = (struct nf_nat_ipv4_multi_range_compat  *) target->data;
+	masquerade->rangesize   = 1;
+
+	if (!iptc_append_entry("POSTROUTING", e, h)) {
+		printf("iptc_append_entry::Error insert/append entry: %s\n", iptc_strerror(errno));
+		result = -1;
+		goto end;
+	}
+	if (!iptc_commit(h)) {
+		printf("iptc_commit::Error commit: %s\n", iptc_strerror(errno));
+		result = -1;
+	}
+
+	end:
+		free(e);
+		iptc_free(h);
+		return result;
+}
+
+int
+forward()
+{
+    struct xtc_handle *h = iptc_init("filter");
+	int result = 0;
+	if (!h) { printf( "error condition  %s\n", iptc_strerror(errno)); return -1;}
+
+	unsigned int targetOffset =  XT_ALIGN(sizeof(struct ipt_entry));
+	unsigned int totalLen     = targetOffset + XT_ALIGN(sizeof(struct xt_standard_target));
+
+	struct ipt_entry* e = (struct ipt_entry *)calloc(1, totalLen);
+	if (e == NULL) {
+		printf("calloc failure :%s\n", strerror(errno));
+		return -1;
+	}
+
+	e->target_offset = targetOffset;
+	e->next_offset = totalLen;
+
+	strcpy(e->ip.outiface, "wlp58s0");
+	strcpy(e->ip.iniface, "veth0");
+
+	struct xt_standard_target* target = (struct xt_standard_target  *) e->elems;
+	target->target.u.target_size = XT_ALIGN(sizeof(struct xt_standard_target));
+	strncpy(target->target.u.user.name, "ACCEPT", strlen("ACCEPT") + 1);
+	target->target.u.user.revision = 0;
+	target->verdict                = -NF_ACCEPT - 1;
+
+	if (iptc_append_entry("FORWARD", e, h) == 0) {
+		printf("iptc_append_entry::Error insert/append entry: %s\n", iptc_strerror(errno));
+		result = -1;
+		goto end;
+	}
+	if (iptc_commit(h) == 0) {
+		printf("iptc_commit::Error commit: %s\n", iptc_strerror(errno));
+		result = -1;
+	}
+
+	end:
+		free(e);
+		iptc_free(h);
+		return result;
+}
+
+
+
+int _nl_socket_init(void)
+{
+	int fd = 0;
+	if ((fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE)) < 0) {
+		fprintf(stderr, "failed to get socket: %s\n", strerror(errno));
+		return 0;
+	}
+
+	int sndbuf = 32768;
+	int rcvbuf = 32768;
+	if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF,
+		&sndbuf, sizeof(sndbuf)) < 0) {
+		fprintf(stderr, "failed to set send buffer: %s\n", strerror(errno));
+		return 0;
+	}
+	if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF,
+		&rcvbuf,sizeof(rcvbuf)) < 0) {
+		fprintf(stderr, "failed to set recieve buffer: %s\n", strerror(errno));
+		return 0;
+	}
+	struct sockaddr_nl *sa = malloc(sizeof(struct sockaddr_nl));
+	memset(sa, 0, sizeof(struct sockaddr_nl));
+	sa->nl_family = AF_NETLINK;
+	sa->nl_groups = 0;
+	if (bind(fd, (struct sockaddr *) sa, sizeof(struct sockaddr)) < 0) {
+		fprintf(stderr, "failed to bind socket: %s\n", strerror(errno));
+		return 0;
+	}
+
+	return fd;
+}
+
+
+void _nlmsg_put(struct nlmsghdr *nlmsg, int type, void *data, size_t len)
+{
+	struct rtattr *rta;
+	size_t  rtalen = RTA_LENGTH(len);
+	rta = NLMSG_TAIL(nlmsg);
+	rta->rta_type = type;
+	rta->rta_len  = rtalen;
+	if (data)
+		memcpy(RTA_DATA(rta), data, len);
+	nlmsg->nlmsg_len = NLMSG_ALIGN(nlmsg->nlmsg_len) + RTA_ALIGN(rtalen);
+}
+
+int _nlmsg_send(int fd, struct nlmsghdr *nlmsg)
+{
+	struct sockaddr_nl *sa = malloc(sizeof(struct sockaddr_nl));
+	memset(sa, 0, sizeof(struct sockaddr_nl));
+	sa->nl_family = AF_NETLINK;
+
+	struct iovec  iov = { nlmsg, nlmsg->nlmsg_len };
+	struct msghdr msg = { sa, sizeof(*sa), &iov, 1, NULL, 0, 0 };
+
+	if (sendmsg(fd, &msg, 0) < 0) {
+		fprintf(stderr, "failed to get socket: %s\n", strerror(errno));
+		return 1;
+	}
+
+	return 0;
+}
+
+int _nlmsg_recieve(int fd)
+{
+	struct sockaddr_nl *sa = malloc(sizeof(struct sockaddr_nl));
+	memset(sa, 0, sizeof(struct sockaddr_nl));
+	sa->nl_family = AF_NETLINK;
+
+	int len = 4096;
+	char buf[len];
+	struct iovec  iov = { buf, len };
+	struct msghdr msg = { sa, sizeof(*sa), &iov, 1, NULL, 0, 0 };
+
+	recvmsg(fd, &msg, 0);
+	struct nlmsghdr *ret = (struct nlmsghdr*)buf;
+	if (ret->nlmsg_type == NLMSG_ERROR) {
+		struct nlmsgerr *err = (struct nlmsgerr*)NLMSG_DATA(ret);
+		if (err->error < 0) {
+			fprintf(stderr, "recieve error: %d\n", err->error);
+			return 1;
+		}
+	} else {
+		fprintf(stderr, "invalid recieve type\n");
+		return 1;
+	}
+
+	return 0;
+}
+
+int _ipt_rule(struct _rule *rule)
+{
+	if (!rule->table)
+		return -1;
+	if (!rule->type)
+		return -1;
+	if (!rule->entry)
+		return -1;
+	struct xtc_handle *h = iptc_init(rule->table);
+	int result = 0;
+
+	if (!h) {
+		printf( "error condition  %s\n", iptc_strerror(errno));
+		return -1;
+	}
+
+	unsigned int targetOffset =  XT_ALIGN(sizeof(struct ipt_entry));
+	unsigned int totalLen     = targetOffset + XT_ALIGN(sizeof(struct xt_standard_target));
+
+	if (strcmp(rule->type, "MASQUERADE") == 0)
+		totalLen +=  XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat));
+
+	struct ipt_entry* e = (struct ipt_entry *)calloc(1, totalLen);
+	if (e == NULL) {
+		printf("calloc failure :%s\n", strerror(errno));
+		return -1;
+	}
+
+	e->target_offset = targetOffset;
+	e->next_offset   = totalLen;
+
+	if (rule->oface)
+		strncpy(e->ip.outiface, rule->oface, strlen(rule->oface) + 1);
+	if (rule->iface)
+		strncpy(e->ip.iniface,  rule->iface, strlen(rule->iface) + 1);
+
+	if (rule->saddr) {
+		struct _addr_t *addr = _init_addr(rule->saddr);
+		e->ip.src.s_addr  = addr->addr;
+		e->ip.smsk.s_addr = addr->mask;
+		_free_addr(addr);
+	}
+	if (rule->daddr) {
+		struct _addr_t *addr = _init_addr(rule->daddr);
+		e->ip.dst.s_addr  = addr->addr;
+		e->ip.dmsk.s_addr = addr->mask;
+		_free_addr(addr);
+	}
+
+	if (strcmp(rule->type, "MASQUERADE") == 0) {
+		struct xt_entry_target* target = (struct xt_entry_target  *) e->elems;
+		target->u.target_size          = XT_ALIGN(sizeof(struct xt_entry_target))
+			+ XT_ALIGN(sizeof(struct nf_nat_ipv4_multi_range_compat));
+		strncpy(target->u.user.name, rule->type, strlen(rule->type) + 1);
+		target->u.user.revision = 0;
+		struct nf_nat_ipv4_multi_range_compat* masquerade = (struct nf_nat_ipv4_multi_range_compat  *) target->data;
+		masquerade->rangesize   = 1;
+	} else {
+		struct xt_standard_target* target  = (struct xt_standard_target  *) e->elems;
+		target->target.u.target_size = XT_ALIGN(sizeof(struct xt_standard_target));
+		strncpy(target->target.u.user.name, rule->type, strlen(rule->type) + 1);
+		target->target.u.user.revision = 0;
+		target->verdict                = -NF_ACCEPT - 1;
+	}
+
+	if (iptc_append_entry(rule->entry, e, h) == 0) {
+		printf("iptc_append_entry::Error insert/append entry: %s\n", iptc_strerror(errno));
+		result = -1;
+		goto end;
+	}
+	if (iptc_commit(h) == 0) {
+		printf("iptc_commit::Error commit: %s\n", iptc_strerror(errno));
+		result = -1;
+	}
+
+	end:
+		free(e);
+		iptc_free(h);
+		return result;
+}
+
+struct _addr_t *  _init_addr(const char *ip)
+{
+	struct _addr_t *addr = malloc(sizeof(struct _addr_t));
+	memset(addr, 0, sizeof(struct _addr_t));
+
+	char *readdr, *prefix, *ptr;
+
+	ptr = strrchr(ip, '/');
+	prefix = strdup(ptr); prefix++;
+	unsigned long mask = (0xFFFFFFFF << (32 - (unsigned int) atoi(prefix))) & 0xFFFFFFFF;
+
+	readdr = strdup(ip);
+	readdr[strlen(ip) - strlen(ptr)] = '\0';
+	unsigned int i;
+	inet_pton(AF_INET, readdr, &i);
+	addr->addr = i;
+	addr->mask = htonl(mask);
+	return addr;
+}
+
+void _free_addr(struct _addr_t *addr)
+{
+	free(addr);
 }

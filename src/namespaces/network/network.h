@@ -55,4 +55,3 @@
  */
 void start_network(pid_t child_pid);
 void prepare_netns(int cmd_pid);
-

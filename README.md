@@ -40,27 +40,31 @@ tells us there are 3 system calls that make up the API:
 pivot_root is a Linux API that changes the root mount in the mount namespace of the
 calling process.
 
-## Cgroups
+## [Cgroups](https://en.wikipedia.org/wiki/Cgroups)
 Cgroups (control groups) is a Linux kernel feature that limits, accounts
 for, and isolates the resource usage (CPU, memory, disk I/O, network, etc...)
-of a collection of processes. Cgroups support has not yet been implemented in this
-repository. Work is still in progress
+of a collection of processes. <br>There are two different versions of cgroups:
+- [version 1](https://www.kernel.org/doc/Documentation/cgroup-v1/cgroups.txt) <br>
+originally written by Paul Menage and Rohit Seth, are based on a set of hierarchies. Each of them is composed by a set of cgroups arranged in a tree. Each hierarchy has an instance of the cgroup virtual filesystem associated with it. Each hierarchy is a partition of all tasks in the system. 
+- [version 2](https://www.kernel.org/doc/Documentation/cgroup-v2.txt) <br>
+Based on a single process hierarchy where cgroups form a tree structure and every process in the system belongs to one and only one cgroup. All threads of a process belong to the same cgroup.
 
 ## Dependencies
-In order to compile this tool is necessary to install the following libraries:
+In order to compile `Understanding-containers` is necessary to install the following libraries:
+ - `libcap-dev` 
+ - `seccomp-dev`
+
 ```bash
-~$  sudo apt install libcap-dev seccomp-dev -y
+~$  sudo apt install libcap-dev seccomp-dev iptables-dev -y
 ```
 
-## Usage
+## Compile
 To create your homemade container you will need to compile the source code in
-the `"src"` directory but first you have to use netsetgo_install.sh inside the
-tools folder. I personally recommend using [cmake](https://cmake.org/)
+the `"src"` directory. I personally recommend using [cmake](https://cmake.org/)
 to do this. Move to the `Understanding-containers` directory and then run the
 following commands
 
 ```bash
-~$  cd tools && sudo ./netsetgo_install.sh && cd ..
 ~$  mkdir build && cd build
 ~$  cmake .. && make -j $(getconf _NPROCESSORS_ONLN)
 ```
@@ -68,22 +72,22 @@ following commands
 Now in the build folder you'll have the executable ready to run!
 Here the help of the tool:
 ```bash
-~$ sudo ./MyDocker -h
 Usage: sudo ./MyDocker <options> <entrypoint>
 
 <options> should be:
-	- a	run all namespaces
+	- a	run all namespaces without the user namespace
+	- U	run a user namespace using unprivileged container
 	- c	cgrops used to limit resources.
-		This command must can be chained with at least one of:
-		- M <memory_limit> 				[1-4294967296]	default: 1073741824 (1GB)
+		This command must be chained with at least one of:
+		- M <memory_limit> 				[1-4294967296]		default: 1073741824 (1GB)
 		- C <percentage_of_cpu_shares> 			[1-100]			default: 25
 		- P <max_pids> 					[10-32768]		default: 64
-		- I <io_weighht> 				[10-1000]		default: 10
+		- I <io_weight> 				[10-1000]		default: 10
 ```
 Feel the thrill of your new container now by running. An example of a command can be:
 
 ```bash
-~$  sudo ./MyDocker -ac -C 50 -I 20 -P 333 /bin/bash
+~$  sudo ./MyDocker -aUc -C 50 -I 20 -P 333 /bin/bash
 ```
 
 In this case the following cgroup resource limits are applied:
@@ -107,23 +111,30 @@ When you want you can finish your container killing the process of his bash `exi
 
 ## Tree of the directors of this repository
 The folders in this repository are:
-
+	
+	├── cmake
 	├── root_fs
 	├── src
-	│ 	├── helpers
-	│ 	└── namespaces
-	│ 	    ├── mount
-	│ 	    ├── network
-	│ 	    └── user
+	│   ├── capabilities
+	│   ├── helpers
+	│   ├── namespaces
+	│   │  ├── cgroup
+	│   │  ├── mount
+	│   │  ├── network
+	│   │  └── user
+	|   └── seccomp 
 	└── tools
 
  - root_fs	[the root filesystem where your container will run]
  - [src](https://github.com/DavideAG/Understanding-containers/tree/master/src)	[the source folder]
+ - [capabilities](https://github.com/DavideAG/Understanding-containers/tree/master/src/capabilities) [capabilities dropped for the new namespace]
  - [helpers](https://github.com/DavideAG/Understanding-containers/tree/master/src/helpers)	[helpers files]
  - [namespaces](https://github.com/DavideAG/Understanding-containers/tree/master/src/namespaces) [support for various namespaces]
+ - [cgroup](https://github.com/DavideAG/Understanding-containers/tree/master/src/namespaces/cgroup) [control group support]
  - [mount](https://github.com/DavideAG/Understanding-containers/tree/master/src/namespaces/mount)	[mount namespace reference folder]
  - [network](https://github.com/DavideAG/Understanding-containers/tree/master/src/namespaces/network)	[network namespace reference folder]
  - [user](https://github.com/DavideAG/Understanding-containers/tree/master/src/namespaces/user)	[user namespace reference folder]
+ - [seccomp](https://github.com/DavideAG/Understanding-containers/tree/master/src/seccomp) [seccomp configuration to block some syscalls]
  - [tools](https://github.com/DavideAG/Understanding-containers/tree/master/tools)	[tools folders]
 
 Each folder (except root_fs) contains a more detailed instruction file called
@@ -160,4 +171,4 @@ Please report any issues, corrections or ideas on [GitHub](https://github.com/Da
 - [A deep dive into Linux namespaces](http://ifeanyi.co/posts/linux-namespaces-part-1/#pivot-root)
 - [netsetgo](https://github.com/teddyking/netsetgo) of [Ed King](https://github.com/teddyking)
 - [ns-process](https://github.com/teddyking/ns-process) of [Ed King](https://github.com/teddyking)
-- [Linux containers in 500 lines of code](https://blog.lizzie.io/linux-containers-in-500-loc.html#org65bbba4) of [Lizzie Dixon](https://github.com/startling)
+- [Linux containers in 500 lines of code](https://blog.lizzie.io/linux-containers-in-500-loc.html) of [Lizzie Dixon](https://github.com/startling)

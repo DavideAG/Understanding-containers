@@ -31,3 +31,13 @@ root_fs/*
 
 # vim swp files
 *.swp
+src/*.swp
+src/helpers/*.swp
+src/seccomp/*.swp
+src/namespaces/cgroup/*.swp
+src/namespaces/mount/*.swp
+src/namespaces/network/*.swp
+src/namespaces/user/*.swp
+
+# bash_history
+root_fs/root/.bash_history

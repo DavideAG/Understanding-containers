@@ -19,6 +19,12 @@ AUX_SOURCE_DIRECTORY(./src/namespaces/network/ MyDocker_SRC_namespaces_network)
 # Set cgroup namespaces source directory
 AUX_SOURCE_DIRECTORY(./src/namespaces/cgroup/ MyDocker_SRC_namespaces_cgroup)
 
+# Set seccomp source directory
+AUX_SOURCE_DIRECTORY(./src/seccomp/ MyDocker_SRC_seccomp)
+
+# Set capabilities source directory
+AUX_SOURCE_DIRECTORY(./src/capabilities MyDocker_SRC_capabilities)
+
 # Create executable
 ADD_EXECUTABLE(
 	MyDocker
@@ -28,16 +34,18 @@ ADD_EXECUTABLE(
 	${MyDocker_SRC_namespaces_user}
 	${MyDocker_SRC_namespaces_network}
 	${MyDocker_SRC_namespaces_cgroup}
+	${MyDocker_SRC_seccomp}
+	${MyDocker_SRC_capabilities}
 )
 
-find_path(SECCOMP NAMES "linux/seccomp.h")
-if(NOT SECCOMP)
-  message(FATAL_ERROR "Couldn't find linux/seccomp.h. You may need to upgrade your kernel.")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+
+find_package(Seccomp)
+
+if (SECCOMP_FOUND)
+	add_library( seccomp SHARED IMPORTED )
+
+	set_target_properties( seccomp PROPERTIES IMPORTED_LOCATION ${SECCOMP_LIBRARIES} )
+
+	TARGET_LINK_LIBRARIES(MyDocker seccomp cap ip4tc)
 endif()
-
-SET_TARGET_PROPERTIES(MyDocker PROPERTIES COMPILE_FLAGS "-lcap")
-SET_TARGET_PROPERTIES(MyDocker PROPERTIES COMPILE_FLAGS "-lseccomp")
-
-target_link_libraries(MyDocker PRIVATE cap)
-
-

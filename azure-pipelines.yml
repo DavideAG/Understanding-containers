@@ -1,13 +1,10 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+# Understanding-containers pipeline based on a main build task
 
 trigger:
 - master
 
-#pool:
-#  vmImage: 'ubuntu-latest'
+pool:
+  vmImage: 'ubuntu-latest'
 
 jobs:
   - job: Build
@@ -16,27 +13,14 @@ jobs:
     steps:
       - bash: |
           sudo apt install libcap-dev -y
+        displayName: installing libcap-dev
+      - bash: |
+          sudo apt install libseccomp-dev -y
+        displayName: installing libseccomp-dev
       - bash: |
           pwd
           mkdir build
           cd build
           cmake ..
           make -j $(getconf _NPROCESSORS_ONLN)
-
-#  - task: CMake@1
-#    inputs:
-#      workingDirectory: 'build'
-#      cmakeArgs: '..'
-#  - bash: make -j $(getconf _NPROCESSORS_ONLN)
-  
-    
-
-#steps:
-#- script: echo Hello, world!
-#  displayName: 'Run a one-line script'
-
-#- script: |
-#    echo Add other tasks to build, test, and deploy your project.
-#    echo See https://aka.ms/yaml
-#  displayName: 'Run a multi-line script'
-
+        displayName: build

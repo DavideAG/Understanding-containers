@@ -1,11 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MEMORY "1073741824"     // memory limit to 1GB in userspace
-#define SHARES "256"            // cpu shares
-#define PIDS "64"               // max pids for the containered process
-#define WEIGHT "10"             // the default weight on all io devices. a per device rule can be defined. It defines a throttling/upper IO rate limit on devices.
-#define FD_COUNT 64
+#define BUFF_LEN	256
+#define FD_COUNT	64				 // fd hard limit value
+#define MEMORY		"1073741824"     // memory limit to 1GB in userspace
+#define SHARES		"256"            // cpu shares
+#define PIDS		"64"             // max pids for the containered process
+#define WEIGHT		"10"             // the default weight on all io devices.
+									 // A per device rule can be defined.
+									 // It defines a throttling/upper IO rate
+									 //limit on devices.
 
 typedef enum {false, true} bool;
 
@@ -24,8 +28,32 @@ struct cgroup_args {
     char *cpu_shares;			/* cpu shares chunks value */
 };
 
+/* This structure represents the file that is written inside
+ * /sys/fs/cgroup/<cgrp_control.control>/mydocker/ 
+ * the name of the file is cgrp_setting.name and the value that is written
+ * inside is store inside cgrp_setting.value */
+struct cgrp_setting {
+	char *name;
+	char *value;
+};
+
+/* Represents the directory that will be created in /sys/fs/cgroup/
+ * each controller is dedicated for a certain type of resource, for example
+ * the maximum userspace memory that can be allocated by the process. */
+struct cgrp_control {
+	char *control;
+	size_t n_settings;
+	struct cgrp_setting **settings;
+};
+
 /* initialize the struct cgroup_args */
 void init_resources(bool cgroup_flag, bool pids_flag, bool memory_flag,
 			bool weight_flag, bool cpu_shares_flag,
 			long max_pids, long memory_limit, long max_weight,
 			long cpu_shares, struct cgroup_args **cgroup_arguments);
+
+/* apply a specific resource configuration for the containered process */
+void apply_cgroups(struct cgroup_args *cgroup_arguments);
+
+/* clean and remove the cgroup folder */
+void free_cgroup_resources();

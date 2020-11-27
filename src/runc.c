@@ -12,13 +12,17 @@
 #include <limits.h>
 #include <fcntl.h>
 #include <sys/mman.h>
-#include "./helpers/helpers.h"
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "runc.h"
+#include "../config.h"
+#include "helpers/helpers.h"
 #include "namespaces/user/user.h"
 #include "namespaces/mount/mount.h"
+#include "seccomp/seccomp_config.h"
+#include "namespaces/cgroup/cgroup.h"
+#include "capabilities/capabilities.h"
 #include "namespaces/network/network.h"
-#include "../config.h"
-#include "./seccomp/seccomp_config.h"
 
 
 int child_fn(void *args_par)
@@ -26,25 +30,25 @@ int child_fn(void *args_par)
     struct clone_args *args = (struct clone_args *) args_par;
     char ch;
     
-    if(args->has_userns){
+    if (args->has_userns) {
 	    /* We are the consumer*/
 	    close(args->sync_uid_gid_map_fd[1]);
 
-	    /* We read EOF when the child close the its write end of the tip. */
-	    if (read(args->sync_uid_gid_map_fd[0], &ch, 1) != 0){
+	    /* We read EOF when the child close the its write end of the tip */
+	    if (read(args->sync_uid_gid_map_fd[0], &ch, 1) != 0) {
 		    fprintf(stderr, "Failure in child: read from pipe returned != 0\n");
 		    exit(EXIT_FAILURE);
 	    }
-	   close(args->sync_uid_gid_map_fd[0]);
+	    close(args->sync_uid_gid_map_fd[0]);
            
-	   /* UID 0 maps to UID 1000 outside. Ensure that the exec process
-            * will run as UID 0 in order to drop its privileges. */
-    	   if (setresgid(0,0,0) == -1)
-		    printErr("Failed to setgid.\n");
-	   if (setresuid(0,0,0) == -1)
-		    printErr("Failed to setuid.\n");
+        /* UID 0 maps to UID 1000 outside. Ensure that the exec process
+         * will run as UID 0 in order to drop its privileges */
+        if (setresgid(0,0,0) == -1)
+            printErr("setgid");
+        if (setresuid(0,0,0) == -1)
+            printErr("setuid");
 
-	   fprintf(stderr,"=> setuid and seguid done.\n");	  
+        fprintf(stderr,"=> setuid and seguid done\n");	  
     }
 
     /* setting new hostname */
@@ -69,7 +73,9 @@ int child_fn(void *args_par)
     * recursive bind mount operation is performed: all submounts under the
     * source subtree (other than unbindable mounts) are also bind mounted
     * at the corresponding location in the target subtree.*/
-    if (mount(FILE_SYSTEM_PATH,FILE_SYSTEM_PATH, "bind", MS_BIND | MS_REC, "") == -1)
+    if (mount(FILE_SYSTEM_PATH,FILE_SYSTEM_PATH,
+            "bind",
+            MS_BIND | MS_REC, "") == -1)
 	    printErr("mount-MS_BIND");
 
    /* Actually it is needed to mount everything we need before unmounting
@@ -86,9 +92,12 @@ int child_fn(void *args_par)
     perform_pivot_root(args->has_userns);
 
     prepare_dev_fd();
+
    /* The root user inside the container must have less privileges than
-    * the real host root, so drop some capablities. */
+    * the real host root, so drop some capablities */
     //drop_caps();
+
+    /* disallowing system calls using seccomp */
     //sys_filter();
       
     if (execvp(args->command[0], args->command) != 0)
@@ -150,7 +159,8 @@ void runc(struct runc_args *runc_arguments)
     *                  (we have to setup interfaces inside the namespace)
     * - CLONE_NEWUSER: User namespace. (we have to provide a UID/GID mapping)
     *                  about UID and GUI:
-    * https://medium.com/@gggauravgandhi/uid-user-identifier-and-gid-group-identifier-in-linux-121ea68bf510
+    *       https://medium.com/@gggauravgandhi/
+    *       uid-user-identifier-and-gid-group-identifier-in-linux-121ea68bf510
     * 
     * The execution context of the cloned process is, in part, defined
     * by the flags passed in.
@@ -165,26 +175,31 @@ void runc(struct runc_args *runc_arguments)
                 CLONE_NEWUTS 	|
                 CLONE_NEWIPC 	|
                 CLONE_NEWPID 	|
-                CLONE_NEWNET
-		;
+                CLONE_NEWNET;
     
-    /* add CLONE_NEWGROUP if required */
-    if (runc_arguments->resources != NULL) {
+    /* CLONE_NEWGROUP if required */
+    if (runc_arguments->resources) {
         clone_flags |= CLONE_NEWCGROUP;
+        args.resources = runc_arguments->resources;
+
+        /* apply resource limitations */
+        apply_cgroups(args.resources);
     }
 
+    /* CLONE_NEWUSER if required */
     if (runc_arguments->has_userns)
 	    clone_flags |= CLONE_NEWUSER;
 
     child_pid = clone(child_fn, child_stack + STACK_SIZE,
-            	      clone_flags | SIGCHLD, &args);
+                        clone_flags | SIGCHLD, &args);
 
-    if (child_pid < 0)
+    if (child_pid < 0) {
+        free_cgroup_resources();
         printErr("Unable to create child process");
-
+    }
+   
     /* Set up the network for the child. */
     prepare_netns(child_pid);
-
 
     /* We force a mapping of 0 1000 1, this means that in the child namespace there will
      * be only UID 0. 
@@ -202,9 +217,7 @@ void runc(struct runc_args *runc_arguments)
      *    error EPERM. Similar rules apply for gid_map files.
      */
 
-
-    if(args.has_userns){
-
+    if (args.has_userns) {
 	    fprintf(stderr,"=> uid and gid mapping ...");
 
 	    /* We are the producer*/
@@ -218,11 +231,11 @@ void runc(struct runc_args *runc_arguments)
 	    close(args.sync_uid_gid_map_fd[1]);	
     }
  
-    
-
     if (waitpid(child_pid, NULL, 0) == -1)
         printErr("waitpid");
 
+    /* removing the cgroup folder associated with the child process */
+    free_cgroup_resources();
     fprintf(stdout, "\nContainer process terminated.\n");
 }
 
@@ -251,4 +264,3 @@ void print_running_infos(struct clone_args *args)
 
     fprintf(stdout, "%s]\n", buf);
 }
-
