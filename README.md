@@ -53,6 +53,7 @@ Based on a single process hierarchy where cgroups form a tree structure and ever
 In order to compile `Understanding-containers` is necessary to install the following libraries:
  - `libcap-dev` 
  - `seccomp-dev`
+ - `iptables-dev`
 
 ```bash
 ~$  sudo apt install libcap-dev seccomp-dev iptables-dev -y

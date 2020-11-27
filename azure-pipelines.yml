@@ -18,6 +18,9 @@ jobs:
           sudo apt install libseccomp-dev -y
         displayName: installing libseccomp-dev
       - bash: |
+          sudo apt install iptables-dev -y
+        displayName: installing iptables-dev
+      - bash: |
           pwd
           mkdir build
           cd build
