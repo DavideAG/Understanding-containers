@@ -55,7 +55,7 @@ In order to compile `Understanding-containers` is necessary to install the follo
  - `seccomp-dev`
 
 ```bash
-~$  sudo apt install libcap-dev seccomp-dev -y
+~$  sudo apt install libcap-dev seccomp-dev iptables-dev -y
 ```
 
 ## Compile
@@ -82,7 +82,7 @@ Usage: sudo ./MyDocker <options> <entrypoint>
 		- M <memory_limit> 				[1-4294967296]		default: 1073741824 (1GB)
 		- C <percentage_of_cpu_shares> 			[1-100]			default: 25
 		- P <max_pids> 					[10-32768]		default: 64
-		- I <io_weighht> 				[10-1000]		default: 10
+		- I <io_weight> 				[10-1000]		default: 10
 ```
 Feel the thrill of your new container now by running. An example of a command can be:
 
