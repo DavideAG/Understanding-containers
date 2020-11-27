@@ -47,5 +47,5 @@ if (SECCOMP_FOUND)
 
 	set_target_properties( seccomp PROPERTIES IMPORTED_LOCATION ${SECCOMP_LIBRARIES} )
 
-	TARGET_LINK_LIBRARIES(MyDocker seccomp cap)
+	TARGET_LINK_LIBRARIES(MyDocker seccomp cap ip4tc)
 endif()

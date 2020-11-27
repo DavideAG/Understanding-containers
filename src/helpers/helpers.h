@@ -45,6 +45,21 @@ struct nl_req {
     char buf[MAX_PAYLOAD];
 };
 
+struct _rule {
+	char *table;
+	char *entry;
+	char *type;
+	char *iface;
+	char *oface;
+	char *saddr;
+	char *daddr;
+};
+
+struct _addr_t {
+	unsigned int addr;
+	unsigned int mask;
+};
+
 #define NLMSG_TAIL(nmsg) \
 	((struct rtattr *) (((void *) (nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
 
@@ -57,4 +72,20 @@ void get_child_entrypoint(int optind, char **arguments, size_t size,
     char ***child_entrypoint);
 
 int drop_root_privileges(void);
+
+
+
+#define NLMSG_STRING(nl, attr, data) \
+	_nlmsg_put((nl), (attr), (data), (strlen((data)) + 1))
+#define NLMSG_ATTR(nl, attr) \
+	_nlmsg_put((nl), (attr), (NULL), (0))
+
+int _nl_socket_init(void);
+int _nlmsg_recieve(int fd);
+int _nlmsg_send(int fd, struct nlmsghdr *nlmsg);
+void _nlmsg_put(struct nlmsghdr *nlmsg, int type, void *data, size_t len);
+int _ipt_rule(struct _rule *rule);
+struct _addr_t *  _init_addr(const char *ip);
+void _free_addr(struct _addr_t *addr);
+
 #endif //ISOLATE_NETNS_H
