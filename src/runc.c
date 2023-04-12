@@ -216,7 +216,6 @@ void runc(struct runc_args *runc_arguments)
      *    more than once to a uid_map file in a user namespace fails with the
      *    error EPERM. Similar rules apply for gid_map files.
      */
-
     if (args.has_userns) {
 	    fprintf(stderr,"=> uid and gid mapping ...");
 
